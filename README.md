@@ -40,7 +40,10 @@ y abre http://localhost:8765
 
 ## Estructura
 
-- `index.html`: toda la aplicación.
+- `index.html`: la portada (página de presentación).
+- `app.html`: toda la aplicación.
+- `config.js`: dirección y clave pública de Supabase (cuentas y guion con IA).
+- `supabase/`: base de datos (`schema.sql`) y función del servidor (`functions/guion/index.ts`). No hace falta subirla a la web.
 - `lib/`: JSZip (paquetes .zip) y mp4-muxer (vídeo MP4).
 - `tts/`: motor de voz (ONNX Runtime Web, Piper, eSpeak NG) y las dos voces comprimidas. Los cuatro archivos más grandes van partidos en trozos de 4 MB (`.part1`, `.part2`…) para poder subirlos desde la web de GitHub; `tts/voz.js` los vuelve a unir al cargar.
 
