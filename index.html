@@ -66,7 +66,7 @@ h1{font-size:clamp(24px,3vw,34px)}h2{font-size:20px}
 .grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:start}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
 label.f{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
-input[type=text],input[type=number],select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px 12px;font-size:16px}
+input[type=text],input[type=number],input[type=email],input[type=password],select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px 12px;font-size:16px}
 textarea{resize:vertical}
 #guion{min-height:460px;line-height:1.6;font-size:17px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -176,6 +176,7 @@ dialog.wide{max-width:min(920px,94vw)}
   <input class="ptitle" id="ptitle" type="text" aria-label="Título del vídeo" placeholder="Título del vídeo">
   <span class="meta" id="saved" style="color:#9aa0c8"></span>
   <button class="btn ghost" id="bProjects" type="button">Mis proyectos</button>
+  <button class="btn ghost" id="bCuenta" type="button" hidden>Entrar</button>
   <button class="btn cy" id="bNew" type="button">Nuevo vídeo</button>
 </header>
 <nav class="steps" aria-label="Pasos">
@@ -460,6 +461,7 @@ dialog.wide{max-width:min(920px,94vw)}
       <textarea id="ytDesc" rows="11"></textarea>
       <label class="f" for="ytTags">Etiquetas <span class="meta">(separadas por comas)</span></label>
       <input type="text" id="ytTags">
+      <label class="chk" style="margin-top:12px"><input type="checkbox" id="ytCred"> Añadir los créditos de fotos y vídeos a la descripción</label>
       <div class="row" style="margin-top:12px">
         <button class="btn" id="bPkgCalc" type="button">Recalcular capítulos</button>
         <button class="btn" id="bAiPkg" type="button">Mejorar con IA</button>
@@ -522,12 +524,36 @@ dialog.wide{max-width:min(920px,94vw)}
   </details>
   <p class="hint">Fotos y vídeos de <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a> y <a href="https://pixabay.com" target="_blank" rel="noopener">Pixabay</a>. Tramaviva apunta el autor en el crédito de la escena y en la descripción de YouTube.</p>
 </div></dialog>
+<dialog id="dAuth"><div class="dlg">
+  <div class="row" style="justify-content:space-between"><h2 id="cuTitle" style="margin:0">Tu cuenta de Tramaviva</h2><button class="btn sm" id="cuClose" type="button">Cerrar</button></div>
+  <div id="cuOut">
+    <p class="hint" style="margin-top:6px">Con tu cuenta, la IA escribe el guion por ti: hasta <span id="cuLim">5</span> guiones al día.</p>
+    <div class="seg" role="radiogroup" aria-label="Qué quieres hacer" style="margin-top:10px"><label><input type="radio" name="cuModo" value="entrar" checked>Ya tengo cuenta</label><label><input type="radio" name="cuModo" value="crear">Crear cuenta</label></div>
+    <form id="cuForm">
+      <label class="f" for="cuMail">Correo electrónico</label><input type="email" id="cuMail" autocomplete="email" required>
+      <label class="f" for="cuPass">Contraseña <span class="meta" id="cuPassHint"></span></label><input type="password" id="cuPass" autocomplete="current-password" minlength="8" required>
+      <div class="row" style="margin-top:14px"><button class="btn or" id="cuGo" type="submit">Entrar</button><button class="btn sm" id="cuOlvido" type="button">He olvidado mi contraseña</button></div>
+    </form>
+  </div>
+  <form id="cuNuevaF" hidden>
+    <p class="hint" style="margin-top:6px">Escribe tu contraseña nueva.</p>
+    <label class="f" for="cuNueva">Contraseña nueva <span class="meta">(8 caracteres o más)</span></label><input type="password" id="cuNueva" autocomplete="new-password" minlength="8" required>
+    <div class="row" style="margin-top:14px"><button class="btn or" type="submit">Guardar la contraseña</button></div>
+  </form>
+  <div id="cuIn" hidden>
+    <p style="margin:10px 0 4px">Has entrado como <b id="cuQuien"></b>.</p>
+    <p class="meta" id="cuCupo" style="margin:0 0 12px"></p>
+    <button class="btn" id="cuSalir" type="button">Salir</button>
+  </div>
+  <p class="meta" id="cuMsg" aria-live="polite" style="margin:12px 0 0"></p>
+</div></dialog>
 <dialog id="dConfirm"><div class="dlg">
   <h2 id="cTitle">¿Seguro?</h2><p id="cText" class="lead"></p>
   <div class="row" style="justify-content:flex-end"><button class="btn" id="cNo" type="button">Cancelar</button><button class="btn or" id="cYes" type="button">Sí</button></div>
 </div></dialog>
 <div class="toast" id="toast" role="status"><span id="toastT"></span><button id="toastB" type="button" hidden>Deshacer</button></div>
 
+<script src="config.js" onerror="window.TV_CONFIG = window.TV_CONFIG || {}"></script>
 <script src="tts/voz.js"></script>
 <script src="lib/mp4-muxer.js"></script>
 <script src="lib/jszip.min.js"></script>
@@ -590,7 +616,7 @@ Imagina que tienes que contárselo a un amigo que no sabe nada del tema. Si te a
 ## Para terminar
 Preguntarte, repartir el estudio y explicarlo con tus palabras. Pruébalo esta semana con un solo tema y nota la diferencia. Si te ha servido, suscríbete y nos vemos en el próximo vídeo.`;
 
-const defAjustes = () => ({ voz: 'tv', rate: 1, formato: 'h', subt: 'karaoke', mov: true, capCard: true, estilo: 'marca', banco: 'videos', autoIlus: true, desglose: 'frases', durTotal: 0, segEscena: 5, pjModo: 'siempre', vozLang: 'es', trans: 'fundido', musica: 'gen', musMood: 'calma', musVol: 0.5, musDuck: true });
+const defAjustes = () => ({ voz: 'tv', rate: 1, formato: 'h', subt: 'karaoke', mov: true, capCard: true, estilo: 'marca', banco: 'videos', autoIlus: true, desglose: 'frases', durTotal: 0, segEscena: 5, pjModo: 'siempre', vozLang: 'es', trans: 'fundido', musica: 'gen', musMood: 'calma', musVol: 0.5, musDuck: true, creditos: true });
 const newProject = (titulo = 'Vídeo sin título', guion = '') => ({ id: uid(), titulo, guion, ajustes: defAjustes(), narracion: null, escenas: [], yt: { titulo: '', descripcion: '', etiquetas: '', miniEscena: 0, miniTexto: '' }, demo: false, actualizado: Date.now() });
 let P = null; let saveTimer;
 function save(now) {
@@ -678,7 +704,7 @@ let sample = null, downloads = null;
 })();
 function refreshAI() {
   const on = !!sample;
-  $('#aiPanel').hidden = !on; $('#bibliaCard').hidden = !on; $('#bAiAll').hidden = !on; $('#bAiFind').hidden = !on; $('#bAiPkg').hidden = !on;
+  $('#aiPanel').hidden = !(on || cuentasOn()); $('#bibliaCard').hidden = !on; $('#bAiAll').hidden = !on; $('#bAiFind').hidden = !on; $('#bAiPkg').hidden = !on;
   $$('.tools .ai-b').forEach(b => b.hidden = !on);
   $('#dlHint').hidden = !!downloads || !(window.claude && claude.use);
 }
@@ -1040,7 +1066,8 @@ Devuelve solo el guion.`;
 $('#aiPrompt').oninput = e => { try { localStorage.setItem('tv-prompt', e.target.value); } catch (er) { } };
 $('#bAiPromptReset').onclick = () => { $('#aiPrompt').value = PROMPT_GUION; try { localStorage.removeItem('tv-prompt'); } catch (e) { } toast('Instrucciones restauradas'); };
 $('#bAiGen').onclick = async () => {
-  if (!sample) return;
+  const gen = sample || webGuion;
+  if (!gen) { if (cuentasOn()) abrirCuenta('entrar', 'Entra o crea tu cuenta para que la IA escriba el guion.'); return; }
   const tema = $('#aiTema').value.trim(); if (!tema) { $('#aiMsg').textContent = 'Escribe primero de qué va el vídeo.'; $('#aiTema').focus(); return; }
   if (P.guion.trim() && !P.demo && !(await ask('¿Sustituir el guion?', 'La IA escribirá un guion nuevo en lugar del que tienes ahora.', 'Sustituir'))) return;
   const min = +$('#aiMin').value, lang = $('#aiLang').selectedOptions[0].textContent;
@@ -1050,16 +1077,135 @@ $('#bAiGen').onclick = async () => {
   if (ref) prompt += `\n\nGUION DE REFERENCIA: imita su ritmo, su manera de enganchar y su estructura, pero con contenido nuevo sobre el tema. No copies sus frases.\n«${ref.slice(0, 6000)}»`;
   aiCtl = new AbortController(); $('#bAiGen').disabled = true; $('#bAiStop').hidden = false; $('#aiMsg').textContent = 'Escribiendo…';
   try {
-    const r = await sample(prompt, { onText: ({ text }) => { $('#guion').value = text; }, signal: aiCtl.signal, modelTier: 'default' });
+    const r = await gen(prompt, { onText: ({ text }) => { $('#guion').value = text; }, signal: aiCtl.signal, modelTier: 'default' });
     P.guion = r.text.trim(); $('#guion').value = P.guion; P.demo = false;
     P.titulo = tema.charAt(0).toUpperCase() + tema.slice(1, 90); $('#ptitle').value = P.titulo; P.yt = { titulo: '', descripcion: '', etiquetas: '', miniEscena: 0, miniTexto: '' };
     P.ajustes.lang = $('#aiLang').value; if (P.ajustes.lang === 'en' || P.ajustes.lang === 'es') P.ajustes.vozLang = P.ajustes.lang; $('#aiMsg').textContent = 'Listo. Revísalo y cámbialo a tu gusto.'; gStats(); save();
   } catch (e) {
-    $('#aiMsg').textContent = e && e.code === 'not_granted' ? 'No has dado permiso para usar Claude desde esta página.' : e && e.code === 'rate_limited' ? 'Has hecho muchas peticiones seguidas. Espera un momento y vuelve a probar.' : (aiCtl.signal.aborted ? 'Parado.' : 'No se pudo escribir el guion. Inténtalo de nuevo.');
+    $('#aiMsg').textContent = e && e.code === 'not_granted' ? 'No has dado permiso para usar Claude desde esta página.' : e && e.code === 'limite' ? `Has usado los ${e.limite || 'guiones'} guiones de hoy. Mañana podrás escribir más.` : e && e.code === 'no_sesion' ? 'Tu sesión ha caducado. Vuelve a entrar con tu cuenta.' : e && e.code === 'rechazo' ? 'La IA no ha querido escribir sobre ese tema. Plantéalo de otra forma.' : e && (e.code === 'ocupado' || e.code === 'rate_limited') ? 'Has hecho muchas peticiones seguidas. Espera un momento y vuelve a probar.' : (aiCtl.signal.aborted ? 'Parado.' : 'No se pudo escribir el guion. Inténtalo de nuevo.');
     if (e && e.text) { $('#guion').value = e.text; P.guion = e.text; save(); }
   } finally { $('#bAiGen').disabled = false; $('#bAiStop').hidden = true; aiCtl = null; }
 };
 $('#bAiStop').onclick = () => aiCtl && aiCtl.abort();
+
+/* ---------- cuentas de la web propia: registro con Supabase y guion con IA en tu servidor ---------- */
+/* Solo funciona fuera de Claude y cuando config.js trae la dirección y la clave pública de Supabase. */
+function cuentasOn() { const c = window.TV_CONFIG || {}; return !!(c.supabaseUrl && c.supabaseKey) && !(window.claude && claude.use); }
+const SUPA_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js';
+let supa = null, sesion = null, webGuion = null, cupoInfo = null;
+const funcUrl = () => String(window.TV_CONFIG.supabaseUrl).replace(/\/+$/, '') + '/functions/v1/guion';
+const volverAqui = () => location.origin + location.pathname;
+async function tokenActual() { if (!supa) return null; try { const { data } = await supa.auth.getSession(); sesion = data.session; } catch (e) { } return sesion && sesion.access_token; }
+/* Llama a tu servidor y va pintando el guion según llega (misma forma que la IA de Claude) */
+async function guionWeb(prompt, { onText, signal } = {}) {
+  const tok = await tokenActual(); if (!tok) throw Object.assign(new Error('no_sesion'), { code: 'no_sesion' });
+  let r;
+  try { r = await fetch(funcUrl(), { method: 'POST', headers: { Authorization: 'Bearer ' + tok, apikey: window.TV_CONFIG.supabaseKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }), signal }); }
+  catch (e) { throw Object.assign(new Error('red'), { code: signal && signal.aborted ? 'parado' : 'red' }); }
+  if (!r.ok) { let j = {}; try { j = await r.json(); } catch (e) { } throw Object.assign(new Error(j.error || 'ia'), { code: r.status === 401 ? 'no_sesion' : (j.error || 'ia'), limite: j.limite }); }
+  const rd = r.body.getReader(), dec = new TextDecoder(); let buf = '', text = '', fin = null;
+  try {
+    for (;;) {
+      const { done, value } = await rd.read(); if (done) break;
+      buf += dec.decode(value, { stream: true }); let k;
+      while ((k = buf.indexOf('\n')) >= 0) {
+        const ln = buf.slice(0, k).trim(); buf = buf.slice(k + 1); if (!ln) continue;
+        let o; try { o = JSON.parse(ln); } catch (e) { continue; }
+        if (typeof o.t === 'string') { text += o.t; onText && onText({ text }); } else if (o.fin || o.error) fin = o;
+      }
+    }
+  } catch (e) { throw Object.assign(new Error('parado'), { code: 'parado', text }); }
+  refrescarCupo();
+  if (!fin || fin.error) throw Object.assign(new Error(fin ? fin.error : 'ia'), { code: fin ? fin.error : 'ia', text });
+  return { text };
+}
+async function refrescarCupo() {
+  const tok = await tokenActual(); if (!tok) { cupoInfo = null; pintarCuenta(); return; }
+  try {
+    const r = await fetch(funcUrl(), { method: 'POST', headers: { Authorization: 'Bearer ' + tok, apikey: window.TV_CONFIG.supabaseKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'cupo' }) });
+    if (r.ok) cupoInfo = await r.json();
+  } catch (e) { }
+  pintarCuenta();
+}
+function pintarCuenta() {
+  if (!cuentasOn()) return;
+  webGuion = sesion ? guionWeb : null;
+  const quien = sesion && sesion.user && sesion.user.email, nueva = !$('#cuNuevaF').hidden;
+  $('#bCuenta').hidden = false; $('#bCuenta').textContent = quien ? 'Mi cuenta' : 'Entrar';
+  $('#cuOut').hidden = !!sesion || nueva; $('#cuIn').hidden = !sesion || nueva; $('#cuQuien').textContent = quien || '';
+  const quedan = cupoInfo ? Math.max(0, cupoInfo.limite - cupoInfo.usados) : null;
+  if (cupoInfo) $('#cuLim').textContent = cupoInfo.limite;
+  $('#cuCupo').textContent = quedan == null ? '' : `Hoy te ${quedan === 1 ? 'queda 1 guion' : `quedan ${quedan} guiones`} con IA de ${cupoInfo.limite}.`;
+  /* el aviso del cupo solo ocupa el hueco si no hay otro mensaje más importante */
+  const msgLibre = el => !el.textContent || /^(Te qued|Entra con tu cuenta)/.test(el.textContent);
+  if (!sample && !aiCtl && msgLibre($('#aiMsg'))) $('#aiMsg').textContent = !sesion ? 'Entra con tu cuenta (botón «Entrar», arriba) para escribir guiones con IA.' : quedan == null ? '' : `Te ${quedan === 1 ? 'queda 1 guion' : `quedan ${quedan} guiones`} con IA hoy.`;
+  refreshAI(); if (P) autoInit();
+}
+function abrirCuenta(modo, aviso) {
+  if (!cuentasOn()) return;
+  if (!supa) { toast('Cargando tu cuenta… vuelve a intentarlo en un momento.'); return; }
+  $('#cuNuevaF').hidden = modo !== 'nueva';
+  if (modo === 'crear' || modo === 'entrar') $$('input[name=cuModo]').forEach(r => r.checked = r.value === modo);
+  modoCuenta(); pintarCuenta(); $('#cuMsg').textContent = aviso || '';
+  if (!$('#dAuth').open) $('#dAuth').showModal();
+}
+function modoCuenta() {
+  const crear = (($$('input[name=cuModo]').find(r => r.checked)) || {}).value === 'crear';
+  $('#cuGo').textContent = crear ? 'Crear cuenta' : 'Entrar'; $('#cuOlvido').hidden = crear;
+  $('#cuPass').autocomplete = crear ? 'new-password' : 'current-password'; $('#cuPassHint').textContent = crear ? '(8 caracteres o más)' : '';
+}
+const errCuenta = e => {
+  const c = (e && (e.code || '')) + ' ' + (e && e.message || '');
+  return /invalid_credentials|Invalid login/i.test(c) ? 'El correo o la contraseña no son correctos.'
+    : /email_not_confirmed|not confirmed/i.test(c) ? 'Antes de entrar, confirma tu correo: abre el enlace que te enviamos.'
+    : /user_already_exists|already registered/i.test(c) ? 'Ya hay una cuenta con ese correo. Elige «Ya tengo cuenta».'
+    : /weak_password|Password should/i.test(c) ? 'La contraseña es demasiado débil: usa 8 caracteres o más, con letras y números.'
+    : /rate_limit|too many/i.test(c) ? 'Demasiados intentos seguidos. Espera unos minutos.'
+    : /fetch|network/i.test(c) ? 'No hay conexión con el servidor de cuentas. Revisa tu conexión.'
+    : 'No se pudo completar. Inténtalo de nuevo.';
+};
+$('#bCuenta').onclick = () => abrirCuenta(sesion ? null : 'entrar');
+$('#cuClose').onclick = () => $('#dAuth').close();
+$$('input[name=cuModo]').forEach(r => r.onchange = () => { modoCuenta(); $('#cuMsg').textContent = ''; });
+$('#cuForm').addEventListener('submit', async ev => {
+  ev.preventDefault(); const crear = $('#cuGo').textContent === 'Crear cuenta', email = $('#cuMail').value.trim(), password = $('#cuPass').value;
+  $('#cuGo').disabled = true; $('#cuMsg').textContent = crear ? 'Creando la cuenta…' : 'Entrando…';
+  try {
+    if (crear) {
+      const { data, error } = await supa.auth.signUp({ email, password, options: { emailRedirectTo: volverAqui() } }); if (error) throw error;
+      if (data.session) { $('#dAuth').close(); toast('Cuenta creada. Ya puedes escribir guiones con IA.'); }
+      else $('#cuMsg').textContent = `Te hemos enviado un correo a ${email}. Abre el enlace para confirmar la cuenta y vuelve aquí.`;
+    } else {
+      const { error } = await supa.auth.signInWithPassword({ email, password }); if (error) throw error;
+      $('#cuPass').value = ''; $('#dAuth').close(); toast('Has entrado. Ya puedes escribir guiones con IA.');
+    }
+  } catch (e) { $('#cuMsg').textContent = errCuenta(e); }
+  $('#cuGo').disabled = false;
+});
+$('#cuOlvido').onclick = async () => {
+  const email = $('#cuMail').value.trim(); if (!email) { $('#cuMsg').textContent = 'Escribe tu correo y vuelve a pulsar «He olvidado mi contraseña».'; $('#cuMail').focus(); return; }
+  try { const { error } = await supa.auth.resetPasswordForEmail(email, { redirectTo: volverAqui() }); if (error) throw error; $('#cuMsg').textContent = `Si hay una cuenta con ${email}, te llegará un correo para cambiar la contraseña.`; }
+  catch (e) { $('#cuMsg').textContent = errCuenta(e); }
+};
+$('#cuNuevaF').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  try { const { error } = await supa.auth.updateUser({ password: $('#cuNueva').value }); if (error) throw error; $('#cuNueva').value = ''; $('#cuNuevaF').hidden = true; pintarCuenta(); $('#cuMsg').textContent = 'Contraseña cambiada.'; }
+  catch (e) { $('#cuMsg').textContent = errCuenta(e); }
+});
+$('#cuSalir').onclick = async () => { try { await supa.auth.signOut(); } catch (e) { } sesion = null; cupoInfo = null; pintarCuenta(); $('#dAuth').close(); toast('Has salido de tu cuenta.'); };
+(async function iniciarCuentas() {
+  if (!cuentasOn()) return;
+  $('#bCuenta').hidden = false;
+  try { await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = SUPA_JS; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); }
+  catch (e) { $('#bCuenta').hidden = true; return; }
+  supa = window.supabase.createClient(window.TV_CONFIG.supabaseUrl, window.TV_CONFIG.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  supa.auth.onAuthStateChange((ev, s) => {
+    sesion = s; pintarCuenta();
+    if (ev === 'PASSWORD_RECOVERY') abrirCuenta('nueva');
+    if (ev === 'SIGNED_IN') setTimeout(refrescarCupo, 0);
+  });
+  await tokenActual(); pintarCuenta(); if (sesion) refrescarCupo();
+})();
 
 /* ---------- Hazlo todo: del tema al vídeo sin pasos ---------- */
 let autoStop = false;
@@ -1068,7 +1214,10 @@ function autoInit() {
   const a = P.ajustes; $('#auEst').value = a.estilo || 'marca'; $('#auFmt').value = a.formato || 'h';
   $('#auVoz').value = a.voz === 'ninguna' ? 'ninguna' : (a.vozLang === 'en' ? 'tv-en' : 'tv-es');
   $('#auMio').checked = !!P.guion.trim() && !P.demo; $('#auTema').disabled = $('#auMio').checked;
-  if (!sample) { $('#auMio').checked = true; $('#auMio').disabled = true; $('#auTema').disabled = true; $('#auMsg').textContent = 'Sin IA en esta vista: se usará tu guion y tarjetas de color.'; }
+  $('#auMio').disabled = false;
+  if (!sample && !cuentasOn()) { $('#auMio').checked = true; $('#auMio').disabled = true; $('#auTema').disabled = true; $('#auMsg').textContent = 'Sin IA en esta vista: se usará tu guion y tarjetas de color.'; }
+  else if (!sample && !webGuion && !$('#auMsg').textContent) $('#auMsg').textContent = 'Entra con tu cuenta para que la IA escriba el guion, o usa el tuyo.';
+  else if (!sample && webGuion && /^Entra con tu cuenta/.test($('#auMsg').textContent)) $('#auMsg').textContent = '';
 }
 $('#auMio').onchange = e => { $('#auTema').disabled = e.target.checked; };
 $('#bAutoStop').onclick = () => { autoStop = true; aiCtl && aiCtl.abort(); bibCtl && bibCtl.abort(); renderCtl && renderCtl.abort(); $('#auMsg').textContent = 'Parando…'; };
@@ -1076,6 +1225,7 @@ $('#bAuto').onclick = async () => {
   const mio = $('#auMio').checked, tema = $('#auTema').value.trim();
   if (!mio && !tema) { $('#auMsg').textContent = 'Escribe de qué va el vídeo.'; $('#auTema').focus(); return; }
   if (mio && !P.guion.trim()) { $('#auMsg').textContent = 'El cuadro del guion está vacío.'; return; }
+  if (!mio && !sample && !webGuion) { abrirCuenta('entrar', 'Entra o crea tu cuenta para que la IA escriba el guion.'); $('#auMsg').textContent = 'Entra con tu cuenta para que la IA escriba el guion.'; return; }
   const v = $('#auVoz').value, lang = v === 'tv-en' ? 'en' : 'es', a = P.ajustes;
   a.voz = v === 'ninguna' ? 'ninguna' : 'tv'; a.vozLang = lang; a.estilo = $('#auEst').value; a.formato = $('#auFmt').value; a.autoIlus = true;
   a.desglose = 'frases'; a.pjModo = 'siempre'; save();
@@ -1096,6 +1246,8 @@ $('#bAuto').onclick = async () => {
       step(0.12, 'Creando el estilo visual del vídeo…');
       P.biblia = ''; P.personaje = ''; P.libre = null; await $('#bBiblia').onclick(); stopped();
       if (!$('#auPj').checked) { P.personaje = ''; save(); renderPj(); }
+    } else if (bankSrc()) {
+      step(0.15, `Buscando vídeos en ${bankName(bankSrc())}…`); await fillFromBanks(false); stopped();
     }
     pr.hidden = true; $('#auMsg').textContent = 'Creando el vídeo: mira el avance aquí.';
     const prevVid = lastVideo; show('exportar'); await $('#bRender').onclick();
@@ -1530,13 +1682,15 @@ $('#bkGrid').addEventListener('click', async ev => {
   catch (err) { $('#bkStat').innerHTML = `No se pudo descargar el archivo. <a href="${esc(it.page || '')}" target="_blank" rel="noopener">Ábrelo en ${bankName(src)}</a>, descárgalo y arrástralo sobre la escena.`; }
   finally { bankBusy = false; b.disabled = false; }
 });
-$('#bBankAll').onclick = async () => {
+function bankSrc() { const pref = P.ajustes.bancoSrc; return pref && getKey(pref) ? pref : getKey('pexels') ? 'pexels' : getKey('pixabay') ? 'pixabay' : null; }
+$('#bBankAll').onclick = () => fillFromBanks(true);
+async function fillFromBanks(preguntar) {
   const list = P.escenas.map((e, i) => i).filter(i => P.escenas[i].visual.tipo === 'tarjeta');
-  if (!list.length) { toast('Todas las escenas tienen ya imagen.'); return; }
-  const pref = P.ajustes.bancoSrc, src = pref && getKey(pref) ? pref : getKey('pexels') ? 'pexels' : getKey('pixabay') ? 'pixabay' : null;
-  if (!src) { openBank(list[0]); return; }
+  if (!list.length) { if (preguntar) toast('Todas las escenas tienen ya imagen.'); return; }
+  const src = bankSrc();
+  if (!src) { if (preguntar) openBank(list[0]); return; }
   const tipo = P.ajustes.banco === 'fotos' ? 'fotos' : 'videos';
-  if (!(await ask('¿Rellenar desde los bancos?', `Tramaviva buscará en ${bankName(src)} ${tipo === 'videos' ? 'un vídeo' : 'una foto'} para cada una de las ${list.length} escenas sin imagen y lo pondrá con el crédito de su autor. Después puedes cambiar los que no te gusten.`, 'Rellenar'))) return;
+  if (preguntar && !(await ask('¿Rellenar desde los bancos?', `Tramaviva buscará en ${bankName(src)} ${tipo === 'videos' ? 'un vídeo' : 'una foto'} para cada una de las ${list.length} escenas sin imagen y lo pondrá con el crédito de su autor. Después puedes cambiar los que no te gusten.`, 'Rellenar'))) return;
   const b = $('#bBankAll'), used = new Set(P.escenas.map(e => e.bancoId).filter(Boolean)); b.disabled = true; let ok = 0, fail = 0;
   try {
     for (const [k, i] of list.entries()) {
@@ -1551,7 +1705,7 @@ $('#bBankAll').onclick = async () => {
     }
   } finally { b.disabled = false; b.textContent = 'Rellenar desde Pexels y Pixabay'; save(); renderStrip(); }
   if (ok || fail) toast(`${ok} ${ok === 1 ? 'escena rellenada' : 'escenas rellenadas'}${fail ? `; ${fail} sin resultado, búscalas a mano con «Buscar en Pexels y Pixabay»` : ''}.`);
-};
+}
 
 /* ---------- modo clips externos (Flow, Gemini, ChatGPT) ---------- */
 const EXT_TOOLS = {
@@ -1673,7 +1827,7 @@ async function reviewScenes(useAI, onp) {
     if (v.tipo === 'ia' && needsRedo(v)) out[i].push(!!P.personaje && v.pjVer !== P.personajeVer ? 'El dibujo es anterior al personaje fijo: no sale el presentador.' : 'El dibujo es de otro estilo distinto al elegido.');
     if (v.tipo === 'ia' && !getVisual(e)) { await prepVisual(e); if (!getVisual(e)) out[i].push('El dibujo no se pudo mostrar.'); }
     if (v.tipo === 'video') { await prepVisual(e); const vd = getVisual(e), d = estDur(e); if (vd && d && vd.duration && vd.duration + 0.5 < d) out[i].push(`El clip dura ${vd.duration.toFixed(1).replace('.', ',')} s y la escena unos ${Math.round(d)} s: se repetirá.`); }
-    if ((v.tipo === 'video' || v.tipo === 'imagen') && !(e.credito || '').trim()) out[i].push('Falta el crédito del autor (si es de Pexels o Pixabay).');
+    if (P.ajustes.creditos !== false && (v.tipo === 'video' || v.tipo === 'imagen') && !(e.credito || '').trim()) out[i].push('Falta el crédito del autor (si es de Pexels o Pixabay).');
     if (P.ajustes.voz === 'escenas' && vozState(e) !== 'ok') out[i].push(vozState(e) === 'no' ? 'No tiene voz grabada.' : 'Voz sin actualizar: cambiaste el texto.');
   }
   if (useAI && sample && imagesOK) {
@@ -2040,6 +2194,7 @@ function tagsFrom() {
   let out = []; for (const t of top) { if ((out.join(', ') + ', ' + t).length > 480) break; out.push(t); } return out.join(', ');
 }
 function creditsTxt() {
+  if (P.ajustes.creditos === false) return '';
   const l = P.escenas.map((e, i) => e.credito && e.credito.trim() && (e.visual.tipo === 'video' || e.visual.tipo === 'imagen') ? `Escena ${i + 1}: ${e.credito.trim()}` : '').filter(Boolean);
   return l.length ? '\n\nCréditos de imágenes y vídeos:\n' + l.join('\n') : '';
 }
@@ -2068,7 +2223,14 @@ function fillPkgDefaults() {
   if (!y.miniTexto) y.miniTexto = (P.titulo || '').slice(0, 60);
   fillPkg();
 }
+/* descripción = presentación + capítulos + créditos (si la casilla está marcada) */
+const descWith = ch => (P.yt.intro || introFrom()) + (ch && ch.length ? '\n\nCapítulos:\n' + ch.map(c => `${fmtTime(c.t)} ${c.name}`).join('\n') : '') + creditsTxt();
+$('#ytCred').onchange = e => {
+  P.ajustes.creditos = e.target.checked; P.yt.intro = introCut($('#ytDesc').value); P.yt.descripcion = descWith(P.yt.chapters || []); save(); fillPkg();
+  toast(e.target.checked ? 'Créditos añadidos a la descripción' : 'Créditos quitados de la descripción');
+};
 function fillPkg() {
+  $('#ytCred').checked = P.ajustes.creditos !== false;
   const y = P.yt; $('#ytTitle').value = y.titulo || ''; $('#ytDesc').value = y.descripcion || ''; $('#ytTags').value = y.etiquetas || ''; $('#thText').value = y.miniTexto || '';
   $('#ytTitleN').textContent = `(${(y.titulo || '').length}/100)`;
   $('#thScene').innerHTML = P.escenas.map((e, i) => `<option value="${i}">Escena ${i + 1}${e.visual.tipo === 'video' ? ' · vídeo' : e.visual.tipo !== 'tarjeta' ? ' · con imagen' : ''}</option>`).join('');
@@ -2099,7 +2261,7 @@ ${P.guion.slice(0, 9000)}`, { modelTier: 'quick' });
     if (v && v.intro) P.yt.intro = String(v.intro);
     if (v && Array.isArray(v.etiquetas)) P.yt.etiquetas = v.etiquetas.map(String).join(', ').slice(0, 490);
     const ch = P.yt.chapters || [];
-    P.yt.descripcion = (P.yt.intro || introFrom()) + (ch.length ? '\n\nCapítulos:\n' + ch.map(c => `${fmtTime(c.t)} ${c.name}`).join('\n') : '') + creditsTxt();
+    P.yt.descripcion = descWith(ch);
     save(); fillPkg(); toast('Paquete mejorado. Revísalo antes de publicar.');
   } catch (e) { toast(e && e.code === 'rate_limited' ? 'Claude pide una pausa. Prueba en un momento.' : 'No se pudo mejorar el paquete.'); }
   b.disabled = false; b.textContent = 'Mejorar con IA';
