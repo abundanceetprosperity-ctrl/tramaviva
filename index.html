@@ -198,7 +198,7 @@ dialog.wide{max-width:min(920px,94vw)}
         <label class="chk"><input type="checkbox" id="auMio"> Ya tengo el guion: uso el que está escrito abajo</label>
       </div>
       <div><label class="f" for="auVoz">Voz</label><select id="auVoz"><option value="tv-es">Voz Tramaviva en español</option><option value="tv-en">Voz Tramaviva en inglés</option><option value="ninguna">Sin voz, solo subtítulos</option></select></div>
-      <div><label class="f" for="auMin">Duración</label><select id="auMin"><option value="1">1 minuto</option><option value="3" selected>3 minutos</option><option value="5">5 minutos</option><option value="8">8 minutos</option><option value="10">10 minutos</option></select></div>
+      <div><label class="f" for="auMin">Duración</label><select id="auMin"><option value="1">1 minuto</option><option value="3" selected>3 minutos</option><option value="5">5 minutos</option><option value="8">8 minutos</option><option value="10">10 minutos</option><option value="15">15 minutos</option><option value="20">20 minutos</option><option value="25">25 minutos</option><option value="30">30 minutos</option></select></div>
       <div><label class="f" for="auEst">Estilo de los dibujos</label><select id="auEst"></select></div>
       <div><label class="f" for="auFmt">Formato</label><select id="auFmt"><option value="h">Horizontal (YouTube)</option><option value="v">Vertical (Shorts, Reels)</option></select></div>
     </div>
@@ -238,7 +238,7 @@ dialog.wide{max-width:min(920px,94vw)}
       <textarea id="aiTema" rows="3" placeholder="Por ejemplo: cómo organizar una mudanza sin estrés"></textarea>
       <div class="row" style="gap:12px">
         <div style="flex:1 1 120px"><label class="f" for="aiMin">Duración</label>
-          <select id="aiMin"><option value="1">1 minuto</option><option value="3" selected>3 minutos</option><option value="5">5 minutos</option><option value="8">8 minutos</option><option value="10">10 minutos</option></select></div>
+          <select id="aiMin"><option value="1">1 minuto</option><option value="3" selected>3 minutos</option><option value="5">5 minutos</option><option value="8">8 minutos</option><option value="10">10 minutos</option><option value="15">15 minutos</option><option value="20">20 minutos</option><option value="25">25 minutos</option><option value="30">30 minutos</option></select></div>
         <div style="flex:1 1 120px"><label class="f" for="aiLang">Idioma</label>
           <select id="aiLang"><option value="es">Español</option><option value="en">Inglés</option><option value="ca">Catalán</option><option value="fr">Francés</option></select></div>
       </div>
@@ -1075,15 +1075,38 @@ $('#bAiGen').onclick = async () => {
   let prompt = ($('#aiPrompt').value.trim() || PROMPT_GUION).replace(/\{(\w+)\}/g, (m, k) => k in vars ? vars[k] : m);
   const ref = $('#aiRef').value.trim();
   if (ref) prompt += `\n\nGUION DE REFERENCIA: imita su ritmo, su manera de enganchar y su estructura, pero con contenido nuevo sobre el tema. No copies sus frases.\n«${ref.slice(0, 6000)}»`;
-  aiCtl = new AbortController(); $('#bAiGen').disabled = true; $('#bAiStop').hidden = false; $('#aiMsg').textContent = 'Escribiendo…';
+  /* Más de 10 minutos: se escribe por partes de unos 10 minutos, cada una continuando la anterior
+     (el servidor gratuito corta las peticiones largas y así el guion sale completo) */
+  const partes = Math.max(1, Math.ceil(min / 10)), pp = Math.round(min * 145 / partes);
+  const promptParte = (i, hecho) => {
+    if (partes === 1) return prompt;
+    const caps = (hecho.match(/^\s*##\s*.+$/gm) || []).map(x => x.replace(/^\s*##\s*/, '').trim());
+    const base = prompt.replace(/\n\nGUION DE REFERENCIA:[\s\S]*$/, '') + (ref ? `\n\nGUION DE REFERENCIA (imita su estilo, no copies frases):\n«${ref.slice(0, 3500)}»` : '');
+    const comun = `\n\nIMPORTANTE: por su longitud, este guion se escribe en ${partes} partes. Escribe ahora SOLO la parte ${i} de ${partes}, de unas ${pp} palabras, con el mismo formato (capítulos con "## ").`;
+    if (i === 1) return base + comun + ' Empieza con el gancho y los primeros capítulos. No te despidas ni cierres el vídeo: termina al final de un capítulo.';
+    const fin = i === partes ? ' Es la parte final: escribe los últimos capítulos y termina con una despedida breve que invite a suscribirse.' : ' No te despidas ni cierres el vídeo: termina al final de un capítulo.';
+    return base + comun + ` Continúa justo donde termina lo ya escrito, sin repetir el gancho ni lo ya contado.${fin}` + (caps.length ? `\nCapítulos ya escritos: ${caps.join(' · ')}.` : '') + `\nAsí termina lo ya escrito:\n«${hecho.slice(-3000)}»\nDevuelve solo el texto nuevo de esta parte.`;
+  };
+  aiCtl = new AbortController(); $('#bAiGen').disabled = true; $('#bAiStop').hidden = false; $('#aiMsg').textContent = partes > 1 ? `Escribiendo la parte 1 de ${partes}…` : 'Escribiendo…';
+  let hecho = '';
   try {
-    const r = await gen(prompt, { onText: ({ text }) => { $('#guion').value = text; }, signal: aiCtl.signal, modelTier: 'default' });
+    for (let i = 1; i <= partes; i++) {
+      if (i > 1) $('#aiMsg').textContent = `Escribiendo la parte ${i} de ${partes}…`;
+      const previo = hecho ? hecho + '\n\n' : '';
+      try {
+        const r = await gen(promptParte(i, hecho), { onText: ({ text }) => { $('#guion').value = previo + text; }, signal: aiCtl.signal, modelTier: 'default' });
+        hecho = (previo + r.text.trim()).trim();
+      } catch (e) { if (e && e.text) e.text = (previo + e.text).trim(); else if (hecho) e.text = hecho; if (e && hecho && partes > 1) e.partes = i - 1; throw e; }
+      $('#guion').value = hecho;
+    }
+    const r = { text: hecho };
     P.guion = r.text.trim(); $('#guion').value = P.guion; P.demo = false;
     P.titulo = tema.charAt(0).toUpperCase() + tema.slice(1, 90); $('#ptitle').value = P.titulo; P.yt = { titulo: '', descripcion: '', etiquetas: '', miniEscena: 0, miniTexto: '' };
     P.ajustes.lang = $('#aiLang').value; if (P.ajustes.lang === 'en' || P.ajustes.lang === 'es') P.ajustes.vozLang = P.ajustes.lang; $('#aiMsg').textContent = 'Listo. Revísalo y cámbialo a tu gusto.'; gStats(); save();
   } catch (e) {
     $('#aiMsg').textContent = e && e.code === 'not_granted' ? 'No has dado permiso para usar Claude desde esta página.' : e && e.code === 'limite' ? `Has usado los ${e.limite || 'guiones'} guiones de hoy. Mañana podrás escribir más.` : e && e.code === 'no_sesion' ? 'Tu sesión ha caducado. Vuelve a entrar con tu cuenta.' : e && e.code === 'rechazo' ? 'La IA no ha querido escribir sobre ese tema. Plantéalo de otra forma.' : e && (e.code === 'ocupado' || e.code === 'rate_limited') ? 'Has hecho muchas peticiones seguidas. Espera un momento y vuelve a probar.' : (aiCtl.signal.aborted ? 'Parado.' : 'No se pudo escribir el guion. Inténtalo de nuevo.');
     if (e && e.text) { $('#guion').value = e.text; P.guion = e.text; save(); }
+    if (e && e.partes) $('#aiMsg').textContent += ` Se ha guardado lo escrito (${e.partes} de ${partes} partes).`;
   } finally { $('#bAiGen').disabled = false; $('#bAiStop').hidden = true; aiCtl = null; }
 };
 $('#bAiStop').onclick = () => aiCtl && aiCtl.abort();
@@ -1696,12 +1719,26 @@ async function fillFromBanks(preguntar) {
     for (const [k, i] of list.entries()) {
       b.textContent = `Buscando ${k + 1} de ${list.length}…`;
       const e = P.escenas[i]; if (!e || e.visual.tipo !== 'tarjeta') continue;
-      try {
-        const { res } = await searchWithFallback(src, tipo, e.busqueda || autoQ(e), qLangFor(e), e, 12);
-        const it = res.find(x => !used.has(x.id)) || res[0]; if (!it) { fail++; continue; }
-        await placeBank(i, it, src, false); used.add(it.id); ok++;
-        if (ok % 4 === 0) { save(); renderStrip(); }
-      } catch (err) { fail++; if (err && ['nokey', 'badkey', 'limit', 'net'].includes(err.code)) { toast(bankErr(err, src)); break; } }
+      let pausas = 0, parar = false;
+      for (;;) {
+        try {
+          const { res } = await searchWithFallback(src, tipo, e.busqueda || autoQ(e), qLangFor(e), e, 12);
+          const it = res.find(x => !used.has(x.id)) || res[0]; if (!it) { fail++; break; }
+          await placeBank(i, it, src, false); used.add(it.id); ok++;
+          if (ok % 4 === 0) { save(); renderStrip(); }
+          break;
+        } catch (err) {
+          /* Pixabay limita las búsquedas por minuto: se espera un minuto y se sigue con la misma escena */
+          if (err && err.code === 'limit' && src === 'pixabay' && pausas < 5) {
+            pausas++; save(); renderStrip();
+            for (let t = 60; t > 0; t--) { b.textContent = `Pausa de Pixabay: sigo en ${t} s (escena ${k + 1} de ${list.length})`; await new Promise(r => setTimeout(r, 1000)); }
+            continue;
+          }
+          fail++; if (err && ['nokey', 'badkey', 'limit', 'net'].includes(err.code)) { toast(bankErr(err, src)); parar = true; }
+          break;
+        }
+      }
+      if (parar) break;
     }
   } finally { b.disabled = false; b.textContent = 'Rellenar desde Pexels y Pixabay'; save(); renderStrip(); }
   if (ok || fail) toast(`${ok} ${ok === 1 ? 'escena rellenada' : 'escenas rellenadas'}${fail ? `; ${fail} sin resultado, búscalas a mano con «Buscar en Pexels y Pixabay»` : ''}.`);
