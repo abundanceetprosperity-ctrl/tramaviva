@@ -1489,6 +1489,21 @@ function openBank(i) {
   if (!$('#dBank').open) $('#dBank').showModal();
   if (getKey(src)) runBank(); else { $('#bkKeys').open = true; $('#bkStat').textContent = `Para buscar sin salir de Tramaviva, pega abajo tu clave gratuita de ${bankName(src)}.`; }
 }
+/* Palabras con más peso de un texto (sin las vacías), de la más larga a la más corta */
+const topWords = (t, n = 3) => [...new Set(words((t || '').toLowerCase().replace(/[^\p{L}\p{N}\s'-]/gu, ' ')).filter(w => w.length > 3 && !STOP.has(w)))].sort((a, b) => b.length - a.length).slice(0, n);
+/* Si una búsqueda no da nada, se prueba con sus palabras sueltas, otras palabras de la escena, del capítulo y del título */
+function fallbackQueries(q, e) {
+  /* primero lo propio de la escena; las palabras del título, al final, para no repetir el mismo tema en todas */
+  const tit = new Set(topWords(P.titulo, 6)), qw = words(q.toLowerCase()).filter(w => w.length > 3), own = w => !tit.has(w);
+  const out = [q, ...qw.filter(own)];
+  if (e) out.push(...topWords(e.texto, 3).filter(own), ...topWords(e.cap || '', 1));
+  out.push(...qw.filter(w => !own(w)), ...topWords(P.titulo, 1));
+  return [...new Set(out.map(x => x.trim().toLowerCase()).filter(Boolean))].slice(0, 6);
+}
+async function searchWithFallback(src, tipo, q, lang, e, n) {
+  for (const qq of fallbackQueries(q, e)) { const res = await bankSearch(src, tipo, qq, lang, n); if (res.length) return { res, q: qq }; }
+  return { res: [], q };
+}
 async function runBank() {
   const src = bkVal('bkSrc') || 'pexels', tipo = bkVal('bkTipo') || 'videos', lang = bkVal('bkLang') || 'es', q = $('#bkQ').value.trim();
   if (!q) { $('#bkStat').textContent = 'Escribe qué buscar.'; $('#bkQ').focus(); return; }
@@ -1496,8 +1511,9 @@ async function runBank() {
   P.ajustes.bancoSrc = src; P.ajustes.banco = tipo; P.ajustes.bancoLang = lang; save();
   $('#bkStat').textContent = `Buscando en ${bankName(src)}…`; $('#bkGrid').innerHTML = '';
   try {
-    bankRes = await bankSearch(src, tipo, q, lang);
-    $('#bkStat').textContent = bankRes.length ? `${bankRes.length} ${bankRes.length === 1 ? 'resultado' : 'resultados'}. Pulsa uno para ponerlo en la escena ${bankTarget + 1}.` : `Sin resultados en ${bankName(src)}. Prueba otras palabras, el otro banco o la búsqueda en inglés.`;
+    const found = await searchWithFallback(src, tipo, q, lang, e); bankRes = found.res;
+    const alt = found.q !== q.toLowerCase() ? `No había nada para «${q}»; te muestro lo de «${found.q}». ` : '';
+    $('#bkStat').textContent = bankRes.length ? `${alt}${bankRes.length} ${bankRes.length === 1 ? 'resultado' : 'resultados'}. Pulsa uno para ponerlo en la escena ${bankTarget + 1}.` : `Sin resultados en ${bankName(src)}. Prueba otras palabras, el otro banco o la búsqueda en inglés.`;
     $('#bkGrid').innerHTML = bankRes.map((it, k) => `<button type="button" class="bitem" data-k="${k}"><img src="${esc(it.thumb)}" alt="${esc(it.alt || q)}" loading="lazy"><span>${it.tipo === 'video' ? `Vídeo · ${Math.round(it.dur || 0)} s` : 'Foto'} · ${esc(it.autor)}</span></button>`).join('');
   } catch (err) { $('#bkStat').textContent = bankErr(err, src); if (err && (err.code === 'nokey' || err.code === 'badkey')) $('#bkKeys').open = true; }
 }
@@ -1527,7 +1543,7 @@ $('#bBankAll').onclick = async () => {
       b.textContent = `Buscando ${k + 1} de ${list.length}…`;
       const e = P.escenas[i]; if (!e || e.visual.tipo !== 'tarjeta') continue;
       try {
-        const res = await bankSearch(src, tipo, e.busqueda || autoQ(e), qLangFor(e), 12);
+        const { res } = await searchWithFallback(src, tipo, e.busqueda || autoQ(e), qLangFor(e), e, 12);
         const it = res.find(x => !used.has(x.id)) || res[0]; if (!it) { fail++; continue; }
         await placeBank(i, it, src, false); used.add(it.id); ok++;
         if (ok % 4 === 0) { save(); renderStrip(); }
