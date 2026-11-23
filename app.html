@@ -375,12 +375,12 @@ dialog.wide{max-width:min(920px,94vw)}
 <!-- 3 ESCENAS -->
 <section class="view" id="v-escenas">
   <div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:16px">
-    <div><h1>Escenas</h1><p class="lead" style="margin:0">Cada escena es un trozo de guion con su imagen. Pon tus fotos o vídeos cortos, pide una ilustración a la IA o deja la tarjeta de color.</p><p class="hint" style="margin:4px 0 0">Con «Buscar en Pexels y Pixabay» eliges un clip sin salir de aquí y Tramaviva lo coloca con el crédito del autor. También puedes abrir la búsqueda en la web, descargar el clip y arrastrarlo encima de la escena. Los vídeos se usan sin su sonido.</p></div>
+    <div><h1>Escenas</h1><p class="lead" style="margin:0">Cada escena es un trozo de guion con su imagen. Pon tus fotos o vídeos cortos, pide una ilustración a la IA o deja la tarjeta de color.</p><p class="hint" style="margin:4px 0 0">Con «Buscar vídeos y fotos» eliges un clip sin salir de aquí y Tramaviva lo coloca con el crédito del autor. También puedes abrir la búsqueda en la web, descargar el clip y arrastrarlo encima de la escena. Los vídeos se usan sin su sonido.</p></div>
     <div class="row">
       <label class="btn" for="fMany" title="También acepta el ZIP numerado que exporta tu app de Flow">Subir fotos, vídeos o ZIP</label><input type="file" id="fMany" accept="image/*,video/*,.zip,application/zip" multiple hidden>
       <button class="btn" id="bAiAll" type="button">Ilustrar todas con IA</button>
       <button class="btn" id="bAiFind" type="button">Sugerir búsquedas con IA</button>
-      <button class="btn" id="bBankAll" type="button" title="Busca en Pexels o Pixabay y coloca un clip en cada escena que no tenga imagen">Rellenar desde Pexels y Pixabay</button>
+      <button class="btn" id="bBankAll" type="button" title="Busca en Pexels o Pixabay y coloca un clip en cada escena que no tenga imagen">Rellenar desde los bancos</button>
       <div class="seg" role="radiogroup" aria-label="Buscar en los bancos"><label><input type="radio" name="banco" value="videos">Buscar vídeos</label><label><input type="radio" name="banco" value="fotos">Buscar fotos</label></div>
       <button class="btn sm" id="bRebuild" type="button" title="Vuelve a partir el guion en escenas">Rehacer desde el guion</button>
       <button class="btn" id="bRev" type="button">Revisar el montaje</button>
@@ -511,7 +511,7 @@ dialog.wide{max-width:min(920px,94vw)}
   <p class="hint" id="bkText" style="margin:4px 0 10px"></p>
   <form class="row" id="bkForm">
     <input type="text" id="bkQ" aria-label="Qué buscar" placeholder="Por ejemplo: london bus" style="flex:1 1 220px">
-    <div class="seg" role="radiogroup" aria-label="Banco"><label><input type="radio" name="bkSrc" value="pexels">Pexels</label><label><input type="radio" name="bkSrc" value="pixabay">Pixabay</label></div>
+    <div class="seg" role="radiogroup" aria-label="Banco"><label><input type="radio" name="bkSrc" value="pexels">Pexels</label><label><input type="radio" name="bkSrc" value="pixabay">Pixabay</label><label><input type="radio" name="bkSrc" value="nasa">NASA</label><label><input type="radio" name="bkSrc" value="wikimedia">Wikimedia</label><label><input type="radio" name="bkSrc" value="openverse">Openverse</label></div>
     <div class="seg" role="radiogroup" aria-label="Tipo"><label><input type="radio" name="bkTipo" value="videos">Vídeos</label><label><input type="radio" name="bkTipo" value="fotos">Fotos</label></div>
     <div class="seg" role="radiogroup" aria-label="Idioma de la búsqueda"><label><input type="radio" name="bkLang" value="es">Español</label><label><input type="radio" name="bkLang" value="en">Inglés</label></div>
     <button class="btn cy" type="submit">Buscar</button>
@@ -525,7 +525,7 @@ dialog.wide{max-width:min(920px,94vw)}
     <label class="f" for="kPixabay">Clave de Pixabay · <a href="https://pixabay.com/api/docs/" target="_blank" rel="noopener">conseguirla</a></label>
     <input type="text" id="kPixabay" autocomplete="off" spellcheck="false">
   </details>
-  <p class="hint">Fotos y vídeos de <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a> y <a href="https://pixabay.com" target="_blank" rel="noopener">Pixabay</a>. Tramaviva apunta el autor en el crédito de la escena y en la descripción de YouTube.</p>
+  <p class="hint">Fotos y vídeos de <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a> y <a href="https://pixabay.com" target="_blank" rel="noopener">Pixabay</a> (con tu clave gratuita), de <a href="https://images.nasa.gov" target="_blank" rel="noopener">NASA</a> y, solo fotos, de <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a> y <a href="https://openverse.org" target="_blank" rel="noopener">Openverse</a> (sin clave; solo licencias CC0, dominio público o CC BY). Tramaviva apunta el autor y la licencia en el crédito de la escena y en la descripción de YouTube.</p>
 </div></dialog>
 <dialog id="dAuth"><div class="dlg">
   <div class="row" style="justify-content:space-between"><h2 id="cuTitle" style="margin:0">Tu cuenta de Tramaviva</h2><button class="btn sm" id="cuClose" type="button">Cerrar</button></div>
@@ -1498,7 +1498,7 @@ async function renderStrip() {
         ${e.voz ? '<button type="button" data-act="vplay">Escuchar</button><button type="button" data-act="vdel">Quitar voz</button>' : ''}</div>` : ''}
       <div class="tools">
         <button type="button" data-act="img">Subir foto o vídeo</button>
-        <button type="button" data-act="bank">Buscar en Pexels y Pixabay</button>
+        <button type="button" data-act="bank">Buscar vídeos y fotos</button>
         <button type="button" data-act="ia" class="ai-b"${sample ? '' : ' hidden'}>Ilustrar con IA</button>
         ${e.visual.tipo !== 'tarjeta' ? '<button type="button" data-act="card">Quitar imagen</button>' : ''}
         ${i ? `<select data-trans aria-label="Transición al entrar en la escena ${i + 1}"><option value="">Transición: la general</option>${['fundido', 'deslizar', 'barrido', 'zoom', 'corte'].map(x => `<option value="${x}"${e.trans === x ? ' selected' : ''}>${x[0].toUpperCase() + x.slice(1)}</option>`).join('')}</select>` : ''}
@@ -1626,7 +1626,12 @@ $('#fMany').onchange = async e => {
 const KEYS = { pexels: 'tv-k-pexels', pixabay: 'tv-k-pixabay' };
 const getKey = s => { try { return (localStorage.getItem(KEYS[s]) || '').trim(); } catch (e) { return ''; } };
 const setKey = (s, v) => { try { localStorage.setItem(KEYS[s], v.trim()); } catch (e) { } };
-const bankName = s => s === 'pixabay' ? 'Pixabay' : 'Pexels';
+const BANCOS = { pexels: 'Pexels', pixabay: 'Pixabay', nasa: 'NASA', wikimedia: 'Wikimedia Commons', openverse: 'Openverse' };
+const bankName = s => BANCOS[s] || 'Pexels';
+/* bancos sin clave: NASA (vídeo y foto) y Wikimedia Commons y Openverse (solo fotos CC0, dominio público o CC BY) */
+const LIBRES = new Set(['nasa', 'wikimedia', 'openverse']), SOLO_FOTOS = new Set(['wikimedia', 'openverse']);
+const puedeBuscar = src => LIBRES.has(src) || !!getKey(src);
+const tipoPara = (src, tipo) => SOLO_FOTOS.has(src) ? 'fotos' : tipo;
 const isV = () => P.ajustes.formato === 'v';
 const shortSide = f => Math.min(f.width || 0, f.height || 0), longSide = f => Math.max(f.width || 0, f.height || 0);
 /* idioma de la búsqueda: las que sugiere la IA van en inglés; las demás, en el idioma elegido o el del guion */
@@ -1638,7 +1643,37 @@ const bankErr = (err, src) => ({
   net: inClaude() ? 'Dentro de Claude no se puede buscar en los bancos. Usa los enlaces Pexels y Pixabay de cada escena, o abre Tramaviva desde su web.' : `No se pudo conectar con ${bankName(src)}. Revisa tu conexión.`
 }[err && err.code] || `${bankName(src)} no respondió. Inténtalo de nuevo.`);
 /* devuelve resultados normalizados: {id, tipo, thumb, file, w, h, dur, autor, page, alt} */
+const limpia = h => { try { return (new DOMParser().parseFromString(String(h || ''), 'text/html').body.textContent || '').replace(/\s+/g, ' ').trim(); } catch (e) { return String(h || '').replace(/<[^>]+>/g, '').trim(); } };
+const licOk = l => { const L = String(l || '').toUpperCase().trim(); return /^(CC0|PUBLIC DOMAIN|PD)/.test(L) || (/^CC BY/.test(L) && !/(SA|NC|ND)/.test(L.replace(/^CC BY/, ''))); };
+const porOrientacion = (a, b) => ((b.h > b.w) === isV()) - ((a.h > a.w) === isV());
+async function libreSearch(src, tipo, q, lang, n) {
+  const qq = encodeURIComponent((q || '').trim().slice(0, 95) || 'nature'); let r;
+  try {
+    if (src === 'nasa') r = await fetch(`https://images-api.nasa.gov/search?q=${qq}&media_type=${tipo === 'videos' ? 'video' : 'image'}&page_size=${Math.min(n, 30)}`);
+    else if (src === 'wikimedia') r = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${qq}${encodeURIComponent(' filetype:bitmap')}&gsrnamespace=6&gsrlimit=${Math.min(n * 2, 50)}&prop=imageinfo&iiprop=url|extmetadata|size|mime&iiurlwidth=1280&format=json&origin=*`);
+    else r = await fetch(`https://api.openverse.org/v1/images/?q=${qq}&license=cc0,pdm,by&page_size=${Math.min(n, 20)}&mature=false`);
+  } catch (e) { throw Object.assign(new Error('net'), { code: 'net' }); }
+  if (!r.ok) throw Object.assign(new Error('http ' + r.status), { code: r.status === 429 ? 'limit' : 'http' });
+  const d = await r.json();
+  if (src === 'nasa') return ((d.collection && d.collection.items) || []).map(it => {
+    const m = (it.data && it.data[0]) || {}, th = it.links && it.links[0] && it.links[0].href; if (!it.href || !th || !m.nasa_id) return null;
+    const au = limpia(m.photographer || m.secondary_creator || ''), cr = au && !/^nasa/i.test(au) ? `${au} · NASA` : 'NASA';
+    return { id: 'na' + m.nasa_id, tipo: tipo === 'videos' ? 'video' : 'imagen', thumb: th.replace(/^http:/, 'https:'), coleccion: it.href.replace(/^http:/, 'https:'), autor: au || 'NASA', credito: cr, page: 'https://images.nasa.gov/details/' + encodeURIComponent(m.nasa_id), alt: limpia(m.title) };
+  }).filter(Boolean);
+  if (src === 'wikimedia') return Object.values((d.query && d.query.pages) || {}).map(pg => {
+    const i = pg.imageinfo && pg.imageinfo[0]; if (!i || !i.thumburl || !/^image\/(jpeg|png|webp)$/.test(i.mime) || (i.thumbwidth || 0) < 700) return null;
+    const m = i.extmetadata || {}, lic = limpia(m.LicenseShortName && m.LicenseShortName.value); if (!licOk(lic)) return null;
+    const au = limpia(m.Artist && m.Artist.value).slice(0, 60) || 'Autor desconocido';
+    return { id: 'wk' + pg.pageid, tipo: 'imagen', thumb: i.thumburl, file: i.thumburl, w: i.thumbwidth, h: i.thumbheight, autor: au, credito: `${au} · Wikimedia Commons (${lic})`, page: i.descriptionshorturl || i.descriptionurl || '', alt: limpia(pg.title).replace(/^File:/, '') };
+  }).filter(Boolean).sort(porOrientacion).slice(0, n);
+  return (d.results || []).map(x => {
+    if (!x.url || !x.thumbnail || (x.width || 0) < 700) return null;
+    const lic = x.license === 'by' ? `CC BY ${x.license_version || ''}`.trim() : x.license === 'cc0' ? 'CC0' : 'dominio público', au = limpia(x.creator || '') || 'Autor desconocido';
+    return { id: 'ov' + x.id, tipo: 'imagen', thumb: x.thumbnail, file: x.url, file2: x.thumbnail, w: x.width, h: x.height, autor: au, credito: `${au} · Openverse (${lic})`, page: x.foreign_landing_url || x.detail_url || '', alt: limpia(x.title) };
+  }).filter(Boolean).sort(porOrientacion);
+}
 async function bankSearch(src, tipo, q, lang, n = 24) {
+  if (LIBRES.has(src)) return libreSearch(src, tipoPara(src, tipo), q, lang, n);
   const key = getKey(src); if (!key) throw Object.assign(new Error('nokey'), { code: 'nokey' });
   const qq = encodeURIComponent((q || '').trim().slice(0, 95) || 'nature'), V = isV(); let r;
   try {
@@ -1669,14 +1704,21 @@ async function bankSearch(src, tipo, q, lang, n = 24) {
   return (d.hits || []).map(h => ({ id: 'xf' + h.id, tipo: 'imagen', thumb: h.webformatURL, file: h.largeImageURL || h.webformatURL, w: h.imageWidth, h: h.imageHeight, autor: h.user || '', page: h.pageURL, alt: h.tags || '' }));
 }
 async function bankFetch(it, src) {
-  let r; try { r = await fetch(it.file); } catch (e) { throw Object.assign(new Error('cors'), { code: 'cors' }); }
+  if (it.coleccion && !it.file) {
+    let c; try { c = await (await fetch(it.coleccion)).json(); } catch (e) { throw Object.assign(new Error('net'), { code: 'net' }); }
+    const us = (Array.isArray(c) ? c : []).map(u => String(u).replace(/^http:/, 'https:'));
+    const pick = (...res) => { for (const re of res) { const u = us.find(x => re.test(x)); if (u) return u; } return null; };
+    it.file = it.tipo === 'video' ? pick(/~mobile\.mp4$/i, /~small\.mp4$/i, /~preview\.mp4$/i, /~medium\.mp4$/i) : pick(/~large\.jpg$/i, /~medium\.jpg$/i, /~small\.jpg$/i);
+    if (!it.file) throw Object.assign(new Error('sin archivo'), { code: 'http' });
+  }
+  let r; try { r = await fetch(it.file); if (!r.ok && it.file2) r = await fetch(it.file2); } catch (e) { if (!it.file2) throw Object.assign(new Error('cors'), { code: 'cors' }); try { r = await fetch(it.file2); } catch (e2) { throw Object.assign(new Error('cors'), { code: 'cors' }); } }
   if (!r.ok) throw Object.assign(new Error('http ' + r.status), { code: 'http' });
   const b = await r.blob(); let type = b.type; if (!/^(image|video)\//.test(type)) type = it.tipo === 'video' ? 'video/mp4' : 'image/jpeg';
   return new File([b], `${src}-${it.id}.${/png/.test(type) ? 'png' : it.tipo === 'video' ? 'mp4' : 'jpg'}`, { type });
 }
 async function placeBank(i, it, src, render = true) {
   const f = await bankFetch(it, src), e = P.escenas[i]; if (!e) return;
-  e.credito = `${it.autor || 'Autor sin nombre'} · ${bankName(src)}`; e.bancoId = it.id;
+  e.credito = it.credito || `${it.autor || 'Autor sin nombre'} · ${bankName(src)}`; e.bancoId = it.id;
   if (render) setImage(i, f); else e.visual = { tipo: it.tipo === 'video' ? 'video' : 'imagen', blob: f, ver: Date.now() + i };
 }
 let bankTarget = -1, bankRes = [], bankBusy = false;
@@ -1686,14 +1728,14 @@ function openBank(i) {
   $('#bkTitle').textContent = `Buscar en los bancos · escena ${i + 1}`;
   $('#bkText').textContent = `«${e.texto.slice(0, 160)}${e.texto.length > 160 ? '…' : ''}»`;
   $('#bkQ').value = e.busqueda || autoQ(e);
-  const src = P.ajustes.bancoSrc || (getKey('pixabay') && !getKey('pexels') ? 'pixabay' : 'pexels');
+  const src = P.ajustes.bancoSrc || (getKey('pexels') ? 'pexels' : getKey('pixabay') ? 'pixabay' : 'wikimedia');
   $$('input[name=bkSrc]').forEach(r => r.checked = r.value === src);
   $$('input[name=bkTipo]').forEach(r => r.checked = r.value === (P.ajustes.banco === 'fotos' ? 'fotos' : 'videos'));
   $$('input[name=bkLang]').forEach(r => r.checked = r.value === qLangFor(e));
   $('#kPexels').value = getKey('pexels'); $('#kPixabay').value = getKey('pixabay');
   $('#bkGrid').innerHTML = ''; $('#bkGrid').classList.toggle('v', isV()); bankRes = [];
   if (!$('#dBank').open) $('#dBank').showModal();
-  if (getKey(src)) runBank(); else { $('#bkKeys').open = true; $('#bkStat').textContent = `Para buscar sin salir de Tramaviva, pega abajo tu clave gratuita de ${bankName(src)}.`; }
+  if (puedeBuscar(src)) runBank(); else { $('#bkKeys').open = true; $('#bkStat').textContent = `Para buscar sin salir de Tramaviva, pega abajo tu clave gratuita de ${bankName(src)}, o elige NASA, Wikimedia u Openverse, que no la necesitan.`; }
 }
 /* Palabras con más peso de un texto (sin las vacías), de la más larga a la más corta */
 const topWords = (t, n = 3) => [...new Set(words((t || '').toLowerCase().replace(/[^\p{L}\p{N}\s'-]/gu, ' ')).filter(w => w.length > 3 && !STOP.has(w)))].sort((a, b) => b.length - a.length).slice(0, n);
@@ -1710,24 +1752,28 @@ async function searchWithFallback(src, tipo, q, lang, e, n) {
   for (const qq of fallbackQueries(q, e)) { const res = await bankSearch(src, tipo, qq, lang, n); if (res.length) return { res, q: qq }; }
   return { res: [], q };
 }
+let bankSeq = 0;
 async function runBank() {
-  const src = bkVal('bkSrc') || 'pexels', tipo = bkVal('bkTipo') || 'videos', lang = bkVal('bkLang') || 'es', q = $('#bkQ').value.trim();
+  const mi = ++bankSeq; /* si el usuario cambia de banco o vuelve a buscar, la respuesta antigua se ignora */
+  const src = bkVal('bkSrc') || 'pexels', lang = bkVal('bkLang') || 'es', q = $('#bkQ').value.trim();
+  let tipo = bkVal('bkTipo') || 'videos', aviso0 = '';
+  if (SOLO_FOTOS.has(src) && tipo === 'videos') { tipo = 'fotos'; $$('input[name=bkTipo]').forEach(r => r.checked = r.value === 'fotos'); aviso0 = `${bankName(src)} solo tiene fotos. `; }
   if (!q) { $('#bkStat').textContent = 'Escribe qué buscar.'; $('#bkQ').focus(); return; }
   const e = P.escenas[bankTarget]; if (e && e.busqueda !== q) { e.busqueda = q; e.busquedaIA = false; }
   P.ajustes.bancoSrc = src; P.ajustes.banco = tipo; P.ajustes.bancoLang = lang; save();
   $('#bkStat').textContent = `Buscando en ${bankName(src)}…`; $('#bkGrid').innerHTML = '';
   try {
-    const found = await searchWithFallback(src, tipo, q, lang, e); bankRes = found.res;
+    const found = await searchWithFallback(src, tipo, q, lang, e); if (mi !== bankSeq) return; bankRes = found.res;
     const alt = found.q !== q.toLowerCase() ? `No había nada para «${q}»; te muestro lo de «${found.q}». ` : '';
-    $('#bkStat').textContent = bankRes.length ? `${alt}${bankRes.length} ${bankRes.length === 1 ? 'resultado' : 'resultados'}. Pulsa uno para ponerlo en la escena ${bankTarget + 1}.` : `Sin resultados en ${bankName(src)}. Prueba otras palabras, el otro banco o la búsqueda en inglés.`;
-    $('#bkGrid').innerHTML = bankRes.map((it, k) => `<button type="button" class="bitem" data-k="${k}"><img src="${esc(it.thumb)}" alt="${esc(it.alt || q)}" loading="lazy"><span>${it.tipo === 'video' ? `Vídeo · ${Math.round(it.dur || 0)} s` : 'Foto'} · ${esc(it.autor)}</span></button>`).join('');
-  } catch (err) { $('#bkStat').textContent = bankErr(err, src); if (err && (err.code === 'nokey' || err.code === 'badkey')) $('#bkKeys').open = true; }
+    $('#bkStat').textContent = bankRes.length ? `${aviso0}${alt}${bankRes.length} ${bankRes.length === 1 ? 'resultado' : 'resultados'}. Pulsa uno para ponerlo en la escena ${bankTarget + 1}.` : `Sin resultados en ${bankName(src)}. Prueba otras palabras, el otro banco o la búsqueda en inglés.`;
+    $('#bkGrid').innerHTML = bankRes.map((it, k) => `<button type="button" class="bitem" data-k="${k}"><img src="${esc(it.thumb)}" alt="${esc(it.alt || q)}" loading="lazy"><span>${it.tipo === 'video' ? `Vídeo${it.dur ? ' · ' + Math.round(it.dur) + ' s' : ''}` : 'Foto'} · ${esc(it.autor)}</span></button>`).join('');
+  } catch (err) { if (mi !== bankSeq) return; $('#bkStat').textContent = bankErr(err, src); if (err && (err.code === 'nokey' || err.code === 'badkey')) $('#bkKeys').open = true; }
 }
 $('#bkForm').addEventListener('submit', ev => { ev.preventDefault(); runBank(); });
-['bkSrc', 'bkTipo', 'bkLang'].forEach(n => $$(`input[name=${n}]`).forEach(r => r.onchange = () => { if (getKey(bkVal('bkSrc'))) runBank(); else { $('#bkKeys').open = true; $('#bkGrid').innerHTML = ''; $('#bkStat').textContent = bankErr({ code: 'nokey' }, bkVal('bkSrc')); } }));
+['bkSrc', 'bkTipo', 'bkLang'].forEach(n => $$(`input[name=${n}]`).forEach(r => r.onchange = () => { if (puedeBuscar(bkVal('bkSrc'))) runBank(); else { $('#bkKeys').open = true; $('#bkGrid').innerHTML = ''; $('#bkStat').textContent = bankErr({ code: 'nokey' }, bkVal('bkSrc')); } }));
 $('#kPexels').oninput = e => setKey('pexels', e.target.value);
 $('#kPixabay').oninput = e => setKey('pixabay', e.target.value);
-$('#kPexels').onchange = $('#kPixabay').onchange = () => { if (getKey(bkVal('bkSrc'))) runBank(); };
+$('#kPexels').onchange = $('#kPixabay').onchange = () => { if (puedeBuscar(bkVal('bkSrc'))) runBank(); };
 $('#bkClose').onclick = () => $('#dBank').close();
 $('#bkGrid').addEventListener('click', async ev => {
   const b = ev.target.closest('.bitem'); if (!b || bankBusy) return; const it = bankRes[+b.dataset.k], src = bkVal('bkSrc') || 'pexels', i = bankTarget; if (!it) return;
@@ -1736,14 +1782,14 @@ $('#bkGrid').addEventListener('click', async ev => {
   catch (err) { $('#bkStat').innerHTML = `No se pudo descargar el archivo. <a href="${esc(it.page || '')}" target="_blank" rel="noopener">Ábrelo en ${bankName(src)}</a>, descárgalo y arrástralo sobre la escena.`; }
   finally { bankBusy = false; b.disabled = false; }
 });
-function bankSrc() { const pref = P.ajustes.bancoSrc; return pref && getKey(pref) ? pref : getKey('pexels') ? 'pexels' : getKey('pixabay') ? 'pixabay' : null; }
+function bankSrc() { const pref = P.ajustes.bancoSrc; return pref && puedeBuscar(pref) ? pref : getKey('pexels') ? 'pexels' : getKey('pixabay') ? 'pixabay' : null; }
 $('#bBankAll').onclick = () => fillFromBanks(true);
 async function fillFromBanks(preguntar) {
   const list = P.escenas.map((e, i) => i).filter(i => P.escenas[i].visual.tipo === 'tarjeta');
   if (!list.length) { if (preguntar) toast('Todas las escenas tienen ya imagen.'); return; }
   const src = bankSrc();
   if (!src) { if (preguntar) openBank(list[0]); return; }
-  const tipo = P.ajustes.banco === 'fotos' ? 'fotos' : 'videos';
+  const tipo = tipoPara(src, P.ajustes.banco === 'fotos' ? 'fotos' : 'videos');
   if (preguntar && !(await ask('¿Rellenar desde los bancos?', `Tramaviva buscará en ${bankName(src)} ${tipo === 'videos' ? 'un vídeo' : 'una foto'} para cada una de las ${list.length} escenas sin imagen y lo pondrá con el crédito de su autor. Después puedes cambiar los que no te gusten.`, 'Rellenar'))) return;
   const b = $('#bBankAll'), used = new Set(P.escenas.map(e => e.bancoId).filter(Boolean)); b.disabled = true; let ok = 0, fail = 0;
   try {
@@ -1771,8 +1817,8 @@ async function fillFromBanks(preguntar) {
       }
       if (parar) break;
     }
-  } finally { b.disabled = false; b.textContent = 'Rellenar desde Pexels y Pixabay'; save(); renderStrip(); }
-  if (ok || fail) toast(`${ok} ${ok === 1 ? 'escena rellenada' : 'escenas rellenadas'}${fail ? `; ${fail} sin resultado, búscalas a mano con «Buscar en Pexels y Pixabay»` : ''}.`);
+  } finally { b.disabled = false; b.textContent = 'Rellenar desde los bancos'; save(); renderStrip(); }
+  if (ok || fail) toast(`${ok} ${ok === 1 ? 'escena rellenada' : 'escenas rellenadas'}${fail ? `; ${fail} sin resultado, búscalas a mano con «Buscar vídeos y fotos»` : ''}.`);
 }
 
 /* ---------- modo clips externos (Flow, Gemini, ChatGPT) ---------- */
@@ -1918,7 +1964,7 @@ async function runReview(useAI) {
     const res = await reviewScenes(useAI, (f, t) => $('#revInfo').textContent = t);
     const bad = res.map((r, i) => ({ i, r })).filter(x => x.r.length);
     P.revision = { fecha: Date.now(), n: bad.length }; save();
-    $('#revInfo').textContent = bad.length ? `${bad.length} de ${P.escenas.length} escenas para revisar primero. El resto está bien.${useAI && !(sample && imagesOK) ? ' (En esta vista la IA no puede mirar las imágenes: solo se han hecho las comprobaciones automáticas.)' : ''}` : `Las ${P.escenas.length} escenas están bien.`;
+    $('#revInfo').textContent = bad.length ? (bad.length === 1 ? `Solo la escena ${bad[0].i + 1} necesita revisión. Las otras ${P.escenas.length - 1} están bien, por eso no salen aquí.` : `${bad.length} de ${P.escenas.length} escenas necesitan revisión (${bad.map(x => x.i + 1).join(', ')}). El resto está bien, por eso no salen aquí.`) + `${useAI && !(sample && imagesOK) ? ' (En esta vista la IA no puede mirar las imágenes: solo se han hecho las comprobaciones automáticas.)' : ''}` : `Las ${P.escenas.length} escenas están bien.`;
     $('#revList').innerHTML = bad.map(({ i, r }) => { const e = P.escenas[i], q = e.busqueda || autoQ(e); return `<div class="rrow" data-i="${i}"><b>${i + 1}</b><canvas width="320" height="${P.ajustes.formato === 'v' ? 568 : 180}"></canvas><div><p style="margin:0 0 4px;font-size:15px">«${esc(e.texto.slice(0, 140))}${e.texto.length > 140 ? '…' : ''}»</p><ul>${r.map(x => `<li>${esc(x)}</li>`).join('')}</ul><div class="acts"><button class="btn sm" type="button" data-r="ver">Ver en el monitor</button>${sample ? '<button class="btn sm" type="button" data-r="ia">Rehacer dibujo con IA</button>' : ''}<button class="btn sm" type="button" data-r="up">Subir archivo</button><button class="btn sm" type="button" data-r="bank">Buscar en los bancos</button>${bankLinks(q)}</div></div></div>`; }).join('');
     for (const row of $$('#revList .rrow')) { const i = +row.dataset.i, e = P.escenas[i], cv = row.querySelector('canvas'); await prepVisual(e); const [W, H] = dims(); const x = cv.getContext('2d'); x.save(); x.scale(cv.width / W, cv.height / H); drawScene(x, W, H, { e, i, dur: 1, speech: 1 }, 0.5); x.restore(); }
     return bad.length;
