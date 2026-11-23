@@ -985,9 +985,9 @@ function wrapLines(ctx, text, maxW) {
 }
 function drawCover(ctx, img, W, H, t, dur, i, mov, zm) {
   const iw = img.videoWidth || img.width, ih = img.videoHeight || img.height; const s0 = Math.max(W / iw, H / ih);
-  const pr = Math.min(1, t / Math.max(dur, 0.01)), k = mov ? (zm === 'out' ? 1.10 - 0.07 * pr : 1.03 + 0.07 * pr) : 1;
+  const pr = Math.min(1, t / Math.max(dur, 0.01)), fuerte = zm === 'in' || zm === 'out', k = !mov ? 1 : zm === 'in' ? 1 + 0.32 * pr : zm === 'out' ? 1.32 - 0.32 * pr : 1.03 + 0.07 * pr;
   const s = s0 * k, w = iw * s, h = ih * s;
-  const dir = i % 2 ? 1 : -1, px = mov ? dir * (w - W) * 0.25 * (t / Math.max(dur, 0.01) - 0.5) : 0;
+  const dir = i % 2 ? 1 : -1, px = mov && !fuerte ? dir * (w - W) * 0.25 * (t / Math.max(dur, 0.01) - 0.5) : 0;
   ctx.drawImage(img, (W - w) / 2 + px, (H - h) / 2, w, h);
 }
 function drawCard(ctx, W, H, e, i, t, mov, noText) {
@@ -1680,7 +1680,7 @@ async function renderStrip() {
 function drawMonitor(t = 1) {
   const e = P.escenas[selScene]; const c = $('#mon'); const ctx = c.getContext('2d');
   if (!e) { ctx.fillStyle = PAL.ink; ctx.fillRect(0, 0, c.width, c.height); return; }
-  const it = { e, i: selScene, start: 0, dur: 6, speech: 5 }; it.caps = captionChunks(e.texto, 5);
+  const dd = tlX.L && tlX.L.pos[selScene] ? tlX.L.pos[selScene].d : 6, it = { e, i: selScene, start: 0, dur: dd, speech: Math.max(1, dd - 0.6) }; it.caps = captionChunks(e.texto, it.speech);
   const base = tlX.L && tlX.L.pos[selScene] ? tlX.L.pos[selScene].t : 0;
   drawAt(ctx, c.width, c.height, { items: [it], base }, t > 0.05 ? t : 1);
 }
