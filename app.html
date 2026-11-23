@@ -428,6 +428,7 @@ dialog.wide{max-width:min(920px,94vw)}
       <h2 style="margin-top:22px">Imágenes</h2>
       <span class="f" style="display:block;margin-top:12px">Transición entre escenas</span>
       <div class="seg" role="radiogroup" aria-label="Transición entre escenas"><label><input type="radio" name="trans" value="fundido">Fundido</label><label><input type="radio" name="trans" value="deslizar">Deslizar</label><label><input type="radio" name="trans" value="barrido">Barrido</label><label><input type="radio" name="trans" value="zoom">Zoom</label><label><input type="radio" name="trans" value="corte">Corte</label></div>
+      <label class="choice" style="margin-top:8px"><input type="checkbox" id="collage"><div><strong>Collage documental</strong><span>Cada escena se monta como un collage de papel de archivo: foto en blanco y negro recortada, cinta, etiqueta, sello e hilo rojo, con cortes secos. Va mejor con fotos de archivo.</span></div></label>
       <label class="choice" style="margin-top:8px"><input type="checkbox" id="mov"><div><strong>Movimiento suave</strong><span>Zoom lento sobre cada imagen para que el vídeo no se vea estático.</span></div></label>
       <label class="choice" style="margin-top:10px"><input type="checkbox" id="autoIlus"><div><strong>Dibujos automáticos con IA</strong><span>Al crear el vídeo, la IA dibuja las escenas que no tengan foto, vídeo ni dibujo.</span></div></label>
       <label class="choice" style="margin-top:10px"><input type="checkbox" id="capCard"><div><strong>Rótulo de capítulo</strong><span>Muestra el nombre del capítulo al empezar cada uno.</span></div></label>
@@ -1072,11 +1073,132 @@ function drawLayers(ctx, W, H, lay, t, dur, i, mov, speech) {
   });
 }
 function drawSceneBase(ctx, W, H, it, t, noText) {
+  if (P.ajustes.collage) { drawCollage(ctx, W, H, it, t); return; }
   const e = it.e, a = P.ajustes, img = e.visual.tipo !== 'tarjeta' ? getVisual(e) : null;
   const lay = img && getLayers(e);
   if (lay) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); drawLayers(ctx, W, H, lay, t, it.dur, it.i, a.mov, it.speech == null ? it.dur : it.speech); }
   else if (img) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); drawCover(ctx, img, W, H, t, it.dur, it.i, zmov(e, a), (e.fx || {}).zoom); }
   else drawCard(ctx, W, H, e, it.i, t, a.mov, noText);
+}
+/* ---------- estilo «collage documental»: papel de archivo, foto recortada, cinta, etiqueta, sello e hilo rojo ---------- */
+const hashStr = s => { let h = 2166136261; for (let k = 0; k < s.length; k++) { h ^= s.charCodeAt(k); h = Math.imul(h, 16777619); } return h >>> 0; };
+const rngOf = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+const c01 = x => Math.max(0, Math.min(1, x)), eOut = x => 1 - Math.pow(1 - c01(x), 3), seg = (t, a, b) => c01((t - a) / Math.max(1e-6, b - a));
+const CRIMSON = '#b3141f', MONO = '"Courier New", Courier, monospace';
+/* nombres propios del texto (sitios, personas): sirven de etiqueta y para buscar la foto */
+function propios(t) {
+  const ws = String(t || '').split(/\s+/).filter(Boolean), out = [], ext = [], cl = w => w.replace(/^[«"'(¿¡]+|[.,;:!?»"')]+$/g, ''); let seq = [], st = -1;
+  const flush = () => {
+    const iniSt = st === 0 || (st > 0 && /[.!?…]$/.test(ws[st - 1]));
+    if (seq.length && iniSt && seq.length > 1 && !/\s/.test(seq.join(' ').replace(/\s+(de|del|la|las|los|el|of|the|da|di|van|von)$/i, ''))) { /* «Miles de visitantes»: no es un nombre */ }
+    else if (seq.length) { const nm = seq.join(' ').replace(/\s+(de|del|la|las|los|el|of|the|da|di|van|von)$/i, ''); out.push(nm);
+      /* «castillo de Edimburgo»: con el sustantivo delante, el banco encuentra mucho mejor la foto */
+      const a1 = st >= 2 ? cl(ws[st - 2]) : '', b1 = st >= 2 ? cl(ws[st - 1]) : '';
+      ext.push(a1.length > 3 && /^(de|del|of)$/i.test(b1) && !STOP.has(a1.toLowerCase()) ? `${a1.toLowerCase()} ${b1.toLowerCase()} ${nm}` : nm); }
+    seq = []; st = -1;
+  };
+  ws.forEach((w, k) => {
+    const c = w.replace(/^[«"'(¿¡]+|[.,;:!?»"')]+$/g, ''), ini = k === 0 || /[.!?…]$/.test(ws[k - 1]);
+    const prop = /^\p{Lu}[\p{L}'-]+$/u.test(c) && !(ini && (STOP.has(c.toLowerCase()) || c.length <= 3));
+    if (prop) { if (!seq.length) st = k; seq.push(c); if (/[.,;:!?…]$/.test(w)) flush(); }
+    else if (seq.length && /^(de|del|la|las|los|el|of|the|da|di|van|von)$/i.test(c)) seq.push(c);
+    else flush();
+  });
+  flush(); out.ext = ext; return out;
+}
+const masLarga = a => a.slice().sort((x, y) => y.split(' ').length - x.split(' ').length)[0];
+const collageLabel = e => ((masLarga(propios(e.texto)) || keyword(e.texto || '') || '').toUpperCase()).slice(0, 24);
+const stampText = (e, i) => { const y = String(e.texto || '').match(/\b(1[0-9]{3}|20[0-2][0-9])\b/); return y ? y[1] : 'ARCHIVO Nº ' + String(i + 1).padStart(3, '0'); };
+const paperCache = new Map();
+function paperBG(W, H, seed) {
+  const key = W + 'x' + H + ':' + (seed % 3); if (paperCache.has(key)) return paperCache.get(key);
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'), r = rngOf(7 + (seed % 3));
+  x.fillStyle = '#d8ceb6'; x.fillRect(0, 0, W, H);
+  x.fillStyle = 'rgba(60,50,35,.10)'; for (let cx = W * 0.04; cx < W; cx += W * 0.16) for (let y = H * 0.05; y < H * 0.97; y += H * 0.022) x.fillRect(cx, y, W * 0.13 * (0.5 + r() * 0.5), H * 0.006);
+  for (let n = 0; n < W * H / 90; n++) { x.fillStyle = r() < 0.5 ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.06)'; x.fillRect(r() * W, r() * H, 2, 2); }
+  const g = x.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75); g.addColorStop(0, 'rgba(120,90,50,0)'); g.addColorStop(1, 'rgba(90,60,30,.35)'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  paperCache.set(key, c); return c;
+}
+let dotsTile = null;
+function dotsPattern(ctx) { if (!dotsTile) { const c = document.createElement('canvas'); c.width = c.height = 6; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 6, 6); x.fillStyle = '#5d523f'; x.beginPath(); x.arc(3, 3, 1.5, 0, 7); x.fill(); dotsTile = c; } return ctx.createPattern(dotsTile, 'repeat'); }
+function raggedRect(r, x, y, w, h, j) {
+  const pts = [], n = 7, edge = (x0, y0, x1, y1) => { for (let k = 0; k < n; k++) { const f = k / n; pts.push([x0 + (x1 - x0) * f + (r() - 0.5) * j, y0 + (y1 - y0) * f + (r() - 0.5) * j]); } };
+  edge(x, y, x + w, y); edge(x + w, y, x + w, y + h); edge(x + w, y + h, x, y + h); edge(x, y + h, x, y); return pts;
+}
+const polyPath = (ctx, pts) => { ctx.beginPath(); pts.forEach((q, k) => k ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); };
+function drawCollage(ctx, W, H, it, t0) {
+  const e = it.e, i = it.i || 0, m = Math.min(W, H), vert = H > W, seed = hashStr(String(e.id || i)), v = seed % 4, r = rngOf(seed);
+  const fin = !!it.final, t = fin ? 99 : Math.floor(Math.max(0, t0) * 12) / 12, dur = Math.max(it.dur || 4, 1), A = Math.min(2.4, dur * 0.6);
+  const S = (a, b) => eOut(seg(t, a * A, b * A));
+  const jr = rngOf(seed + Math.floor(t * 6)), lv = !fin && t > A, jx = lv ? (jr() - 0.5) * m * 0.004 : 0, jy = lv ? (jr() - 0.5) * m * 0.004 : 0;
+  ctx.save(); ctx.drawImage(paperBG(W, H, seed), 0, 0);
+  /* recortes de periódico: entran los primeros */
+  [[0.2, 0.25, 0.34, 0.38, -0.06, -1, -1], [0.8, 0.74, 0.36, 0.36, 0.05, 1, 1], [0.84, 0.2, 0.26, 0.3, 0.08, 1, -1]].forEach((f, k) => {
+    const p = S(0.02 + k * 0.05, 0.3 + k * 0.05); if (p <= 0) return;
+    ctx.save(); ctx.translate(W * f[0] + (1 - p) * f[5] * W * 0.7, H * f[1] + (1 - p) * f[6] * H * 0.7); ctx.rotate(f[4]);
+    const fw = W * f[2], fh = H * f[3], rr = rngOf(seed + 10 + k);
+    ctx.shadowColor = 'rgba(40,30,15,.35)'; ctx.shadowBlur = m * 0.015; ctx.shadowOffsetY = m * 0.006; ctx.fillStyle = k === 1 ? '#bdb39b' : '#cdc3aa'; polyPath(ctx, raggedRect(rr, -fw / 2, -fh / 2, fw, fh, m * 0.014)); ctx.fill(); ctx.shadowColor = 'transparent';
+    ctx.fillStyle = 'rgba(50,40,28,.35)'; for (let y = -fh / 2 + fh * 0.12; y < fh / 2 - fh * 0.1; y += fh * 0.09) ctx.fillRect(-fw / 2 + fw * 0.1, y, fw * (0.4 + rr() * 0.45), fh * 0.025);
+    ctx.restore();
+  });
+  /* foto recortada (o expediente mecanografiado si la escena no tiene imagen) */
+  const img = e.visual && e.visual.tipo !== 'tarjeta' ? getVisual(e) : null;
+  let iw = img ? (img.videoWidth || img.width || 0) : 0, ih = img ? (img.videoHeight || img.height || 0) : 0; if (!iw || !ih) { iw = 16; ih = 10; }
+  let pw, ph;
+  if (img) { const sc = Math.min((vert ? W * 0.84 : W * 0.56) / iw, (vert ? H * 0.42 : H * 0.62) / ih); pw = iw * sc; ph = ih * sc; } else { pw = vert ? W * 0.78 : W * 0.44; ph = vert ? H * 0.40 : H * 0.64; }
+  const cx = W * (0.5 + [0, 0.05, -0.05, 0.02][v] * (vert ? 0.4 : 1)), cy = H * (vert ? 0.40 : 0.47), th = (r() - 0.5) * 0.06 + (v % 2 ? 0.02 : -0.02), pp = S(0.1, 0.5), dir = v % 2 ? 1 : -1;
+  if (pp > 0) {
+    ctx.save(); ctx.translate(cx + (1 - pp) * dir * W * 0.9 + jx, cy + jy); ctx.rotate(th);
+    ctx.shadowColor = 'rgba(40,30,15,.45)'; ctx.shadowBlur = m * 0.02; ctx.shadowOffsetX = m * 0.008; ctx.shadowOffsetY = m * 0.012; ctx.fillStyle = '#efe8d8';
+    polyPath(ctx, raggedRect(rngOf(seed + 1), -pw / 2 - m * 0.012, -ph / 2 - m * 0.012, pw + m * 0.024, ph + m * 0.024, m * 0.012)); ctx.fill(); ctx.shadowColor = 'transparent';
+    ctx.save(); ctx.beginPath(); ctx.rect(-pw / 2, -ph / 2, pw, ph); ctx.clip();
+    if (img) {
+      if ('filter' in ctx) ctx.filter = 'contrast(1.25) brightness(1.02)'; ctx.drawImage(img, -pw / 2, -ph / 2, pw, ph); if ('filter' in ctx) ctx.filter = 'none';
+      ctx.globalCompositeOperation = 'saturation'; ctx.fillStyle = '#808080'; ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+      ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgba(205,175,130,.55)'; ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+      ctx.fillStyle = dotsPattern(ctx); ctx.globalAlpha = 0.35; ctx.fillRect(-pw / 2, -ph / 2, pw, ph); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    } else {
+      ctx.fillStyle = '#f1ead8'; ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+      const txt = String(e.texto || ''), n = fin ? txt.length : Math.floor(seg(t, 0.3 * A, A) * txt.length), fs = m * 0.034;
+      ctx.font = `600 ${fs}px ${MONO}`; ctx.fillStyle = '#2b241a'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      wrapLines(ctx, txt.slice(0, n), pw * 0.86).slice(0, Math.floor((ph - fs * 2) / (fs * 1.5))).forEach((ln, k) => ctx.fillText(ln, -pw / 2 + pw * 0.07, -ph / 2 + fs * 1.6 + k * fs * 1.5));
+    }
+    ctx.restore();
+    /* cintas */
+    const tp = S(0.5, 0.62);
+    if (tp > 0) for (const [tx, ty, ta] of [[-pw / 2 + m * 0.03, -ph / 2 + m * 0.005, -0.6], [pw / 2 - m * 0.03, -ph / 2 + m * 0.005, 0.6]]) {
+      ctx.save(); ctx.translate(tx, ty); ctx.rotate(ta); const k = 1 + (1 - tp) * 0.5; ctx.scale(k, k); ctx.globalAlpha = tp * 0.85;
+      ctx.fillStyle = 'rgba(236,224,160,.72)'; ctx.fillRect(-m * 0.06, -m * 0.017, m * 0.12, m * 0.034); ctx.strokeStyle = 'rgba(150,130,70,.35)'; ctx.lineWidth = 1; ctx.strokeRect(-m * 0.06, -m * 0.017, m * 0.12, m * 0.034); ctx.restore();
+    }
+    /* etiqueta mecanografiada */
+    const lab = collageLabel(e), lp = S(0.6, 0.8), lh = m * 0.075; let lfs = m * 0.042; ctx.font = `700 ${lfs}px ${MONO}`;
+    const lmax = Math.min(pw * 0.72, m * 0.72); while (lab && ctx.measureText(lab).width > lmax - m * 0.05 && lfs > m * 0.022) { lfs *= 0.92; ctx.font = `700 ${lfs}px ${MONO}`; }
+    const lw = Math.max(m * 0.2, Math.min(lmax, ctx.measureText(lab).width + m * 0.06)), lx = v % 2 ? pw / 2 - lw - m * 0.02 : -pw / 2 + m * 0.02, ly = ph / 2 - lh * 0.3, lside = v % 2 ? 1 : -1;
+    if (lab && lp > 0) {
+      ctx.save(); ctx.translate(lx + lw / 2 + (1 - lp) * lside * W * 0.5, ly + lh / 2 + (1 - lp) * H * 0.15); ctx.rotate(lside * 0.035);
+      ctx.shadowColor = 'rgba(40,30,15,.4)'; ctx.shadowBlur = m * 0.01; ctx.shadowOffsetY = m * 0.005; ctx.fillStyle = '#f3ecd9'; polyPath(ctx, raggedRect(rngOf(seed + 2), -lw / 2, -lh / 2, lw, lh, m * 0.008)); ctx.fill(); ctx.shadowColor = 'transparent';
+      ctx.fillStyle = '#1b1610'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, 0, 0); ctx.restore();
+    }
+    /* sello de tinta */
+    const sp = S(0.8, 0.92), stx = stampText(e, i), sfs = m * 0.034; ctx.font = `800 ${sfs}px ${MONO}`;
+    const sw = ctx.measureText(stx).width + m * 0.05, sh = sfs * 1.9, sx = v < 2 ? pw / 2 - sw * 0.35 : -pw / 2 + sw * 0.35, sy = -ph / 2 + sh * 0.2;
+    if (sp > 0) {
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(v < 2 ? -0.2 : 0.18); const k = 1 + (1 - sp) * 0.6; ctx.scale(k, k); ctx.globalAlpha = sp * 0.88; ctx.strokeStyle = CRIMSON; ctx.fillStyle = CRIMSON;
+      ctx.lineWidth = m * 0.005; roundRect(ctx, -sw / 2, -sh / 2, sw, sh, m * 0.008); ctx.stroke(); ctx.lineWidth = m * 0.0018; roundRect(ctx, -sw / 2 + m * 0.009, -sh / 2 + m * 0.009, sw - m * 0.018, sh - m * 0.018, m * 0.004); ctx.stroke();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(stx, 0, 0); ctx.restore();
+    }
+    /* hilo rojo con chinchetas, del extremo de la etiqueta al sello */
+    const st = seg(t, 0.85 * A, A), ax = lx + lw * (v % 2 ? 0.08 : 0.92), ay = ly + lh * 0.5;
+    if (st > 0 && lab) {
+      const cxm = (ax + sx) / 2, cym = (ay + sy) / 2 + m * 0.06; ctx.save(); ctx.strokeStyle = CRIMSON; ctx.lineWidth = m * 0.005; ctx.lineCap = 'round'; ctx.shadowColor = 'rgba(40,10,10,.35)'; ctx.shadowBlur = m * 0.006; ctx.beginPath();
+      for (let k = 0; k <= 24; k++) { const u = st * k / 24, q = 1 - u, X = q * q * ax + 2 * q * u * cxm + u * u * sx, Y = q * q * ay + 2 * q * u * cym + u * u * sy; k ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+      ctx.stroke(); ctx.shadowColor = 'transparent';
+      for (const [px, py, on] of [[ax, ay, st > 0], [sx, sy, st >= 1]]) if (on) { const g = ctx.createRadialGradient(px - m * 0.003, py - m * 0.003, 1, px, py, m * 0.013); g.addColorStop(0, '#f1d98a'); g.addColorStop(1, '#8c6a22'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, m * 0.011, 0, 7); ctx.fill(); }
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+  ctx.restore();
 }
 /* efectos de cada escena: zoom, filtro de color y velocidad del vídeo */
 const FILTROS = { bn: 'grayscale(1) contrast(1.1)', sepia: 'sepia(.85) contrast(1.05)', calido: 'sepia(.25) saturate(1.3) hue-rotate(-10deg) brightness(1.05)', frio: 'saturate(1.1) hue-rotate(18deg) brightness(1.02) contrast(1.05)', vivo: 'saturate(1.6) contrast(1.1)', cine: 'contrast(1.2) saturate(.85) brightness(.95)' };
@@ -1150,7 +1272,7 @@ function drawAt(ctx, W, H, tl, T) {
   const items = tl.items; if (!items.length) { ctx.fillStyle = PAL.ink; ctx.fillRect(0, 0, W, H); return; }
   let i = items.findIndex(it => T >= it.start && T < it.start + it.dur); if (i < 0) i = T < 0 ? 0 : items.length - 1;
   const it = items[i], t = T - it.start;
-  const D = 0.5, tr = (it.e.trans || P.ajustes.trans || 'fundido');
+  const D = 0.5, tr = (it.e.trans || (P.ajustes.collage ? 'corte' : (P.ajustes.trans || 'fundido')));
   if (i > 0 && t < D && tr !== 'corte') {
     const p = items[i - 1], x = t / D, q = x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
     if (tr === 'deslizar') { ctx.save(); ctx.translate(-W * q, 0); drawScene(ctx, W, H, p, p.dur); ctx.restore(); ctx.save(); ctx.translate(W * (1 - q), 0); drawScene(ctx, W, H, it, t); ctx.restore(); }
@@ -1425,8 +1547,8 @@ $('#cuSalir').onclick = async () => { try { await supa.auth.signOut(); } catch (
 /* ---------- Hazlo todo: del tema al vídeo sin pasos ---------- */
 let autoStop = false, temaURL = '';
 function autoInit() {
-  $('#auEst').innerHTML = Object.entries(STYLES).map(([k, st]) => `<option value="${k}">${esc(st.nombre)}</option>`).join('');
-  const a = P.ajustes; $('#auEst').value = a.estilo || 'marca'; $('#auFmt').value = a.formato || 'h';
+  $('#auEst').innerHTML = '<option value="collage">Collage documental (fotos de archivo)</option>' + Object.entries(STYLES).map(([k, st]) => `<option value="${k}">${esc(st.nombre)}</option>`).join('');
+  const a = P.ajustes; $('#auEst').value = a.collage ? 'collage' : (a.estilo || 'marca'); $('#auFmt').value = a.formato || 'h';
   $('#auVoz').value = a.voz === 'ninguna' ? 'ninguna' : (a.vozLang === 'en' ? 'tv-en' : 'tv-es');
   $('#auMio').checked = !temaURL && !!P.guion.trim() && !P.demo; $('#auTema').disabled = $('#auMio').checked;
   $('#auMio').disabled = false;
@@ -1442,7 +1564,7 @@ $('#bAuto').onclick = async () => {
   if (mio && !P.guion.trim()) { $('#auMsg').textContent = 'El cuadro del guion está vacío.'; return; }
   if (!mio && !sample && !webGuion) { abrirCuenta('entrar', 'Entra o crea tu cuenta para que la IA escriba el guion.'); $('#auMsg').textContent = 'Entra con tu cuenta para que la IA escriba el guion.'; return; }
   const v = $('#auVoz').value, lang = v === 'tv-en' ? 'en' : 'es', a = P.ajustes;
-  a.voz = v === 'ninguna' ? 'ninguna' : 'tv'; a.vozLang = lang; a.estilo = $('#auEst').value; a.formato = $('#auFmt').value; a.autoIlus = true;
+  a.voz = v === 'ninguna' ? 'ninguna' : 'tv'; a.vozLang = lang; const est = $('#auEst').value; a.collage = est === 'collage'; if (a.collage) { a.banco = 'fotos'; a.bancoSrc = 'wikimedia'; } else a.estilo = est; a.formato = $('#auFmt').value; a.autoIlus = true;
   a.desglose = 'frases'; a.pjModo = 'siempre'; save();
   const pr = $('#auProg'), step = (f, t) => { setProg(pr, f, t); $('#auMsg').textContent = ''; };
   autoStop = false; $('#bAuto').disabled = true; $('#bAutoStop').hidden = false;
@@ -1486,7 +1608,7 @@ function syncVozUI() {
   $$('input[name=banco]').forEach(r => r.checked = r.value === (a.banco || 'videos'));
   $('#styles').innerHTML = Object.entries(STYLES).map(([k, st]) => `<label class="sty"><input type="radio" name="estilo" value="${k}"${k === a.estilo ? ' checked' : ''}><div class="sw">${[st.cards[0].bg, st.cards[0].a, st.cards[0].b, (st.cards[1] || st.cards[0]).bg].map(c => `<i style="background:${c}"></i>`).join('')}</div><b>${st.nombre}</b><span>${st.desc}</span></label>`).join('');
   $('#autoIlus').checked = a.autoIlus !== false;
-  $('#mov').checked = a.mov; $('#capCard').checked = a.capCard; $('#rate').value = a.rate; $('#rateV').textContent = String(a.rate.toFixed(2)).replace('.', ',');
+  $('#collage').checked = !!a.collage; $('#mov').checked = a.mov; $('#capCard').checked = a.capCard; $('#rate').value = a.rate; $('#rateV').textContent = String(a.rate.toFixed(2)).replace('.', ',');
   $('#vozTV').hidden = a.voz !== 'tv'; $('#vozPropia').hidden = a.voz !== 'propia'; $('#vozEscenas').hidden = a.voz !== 'escenas';
   $$('input[name=trans]').forEach(r => r.checked = r.value === (a.trans || 'fundido'));
   $$('input[name=vozLang]').forEach(r => r.checked = r.value === vLang());
@@ -1588,6 +1710,7 @@ $$('input[name=sub]').forEach(r => r.onchange = () => { P.ajustes.subt = r.value
 $('#styles').addEventListener('change', e => { if (e.target.name !== 'estilo') return; P.ajustes.estilo = e.target.value; drawStylePrev(); save(); const n = P.escenas.filter(x => x.visual.tipo === 'ia' && (x.visual.estilo || 'marca') !== P.ajustes.estilo).length; if (n) toast(`${n} ilustraciones son del estilo anterior. Rehazlas en Escenas con «Ilustrar todas con IA».`); });
 $('#autoIlus').onchange = e => { P.ajustes.autoIlus = e.target.checked; save(); };
 $('#mov').onchange = e => { P.ajustes.mov = e.target.checked; save(); };
+$('#collage').onchange = e => { P.ajustes.collage = e.target.checked; if (e.target.checked) P.ajustes.banco = 'fotos'; save(); drawStylePrev(); renderStrip(); };
 $('#capCard').onchange = e => { P.ajustes.capCard = e.target.checked; drawStylePrev(); save(); };
 $('#rate').oninput = e => { P.ajustes.rate = +e.target.value; $('#rateV').textContent = (+e.target.value).toFixed(2).replace('.', ','); save(); };
 $('#fAudio').onchange = e => { const f = e.target.files[0]; if (!f) return; P.narracion = f; P.narracionGuion = P.guion; ownAudio = null; syncVozUI(); save(); toast('Narración cargada'); };
@@ -1631,7 +1754,7 @@ async function drawStylePrev() {
   await fontsReady();
   const c = $('#stylePrev'); const v = P.ajustes.formato === 'v'; c.width = v ? 360 : 640; c.height = v ? 640 : 360; c.style.width = v ? '56%' : '100%'; c.style.display = 'block'; c.style.margin = '16px auto 0';
   const e = P.escenas[0] || { id: 'x', texto: 'Así se verán tus subtítulos en el vídeo final.', cap: 'Capítulo uno', capIni: true, visual: { tipo: 'tarjeta' } };
-  const it = { e, i: 0, start: 0, dur: 6, speech: 5.5 }; it.caps = captionChunks(e.texto, 5.5);
+  const it = { e, i: 0, start: 0, dur: 6, speech: 5.5, final: true }; it.caps = captionChunks(e.texto, 5.5);
   if (e.visual.tipo !== 'tarjeta') await prepVisual(e);
   const ctx = c.getContext('2d'); drawAt(ctx, c.width, c.height, { items: [it] }, 1.2);
 }
@@ -1640,7 +1763,7 @@ async function drawStylePrev() {
 let selScene = 0;
 function thumbFor(e, i, cv) {
   const ctx = cv.getContext('2d'); const [W, H] = dims(); cv.width = W / 5; cv.height = H / 5;
-  ctx.save(); ctx.scale(0.2, 0.2); drawScene(ctx, W, H, { e, i, dur: 1 }, 0); ctx.restore();
+  ctx.save(); ctx.scale(0.2, 0.2); drawScene(ctx, W, H, { e, i, dur: 1, final: true }, 0); ctx.restore();
 }
 async function renderStrip() {
   syncVozUI(); await fontsReady();
@@ -1679,10 +1802,10 @@ async function renderStrip() {
   $('#monInfo').textContent = P.escenas.length ? `Escena ${selScene + 1} de ${P.escenas.length}` : '';
   renderExt();
 }
-function drawMonitor(t = 1) {
+function drawMonitor(t = 0) {
   const e = P.escenas[selScene]; const c = $('#mon'); const ctx = c.getContext('2d');
   if (!e) { ctx.fillStyle = PAL.ink; ctx.fillRect(0, 0, c.width, c.height); return; }
-  const dd = tlX.L && tlX.L.pos[selScene] ? tlX.L.pos[selScene].d : 6, it = { e, i: selScene, start: 0, dur: dd, speech: Math.max(1, dd - 0.6) }; it.caps = captionChunks(e.texto, it.speech);
+  const dd = tlX.L && tlX.L.pos[selScene] ? tlX.L.pos[selScene].d : 6, it = { e, i: selScene, start: 0, dur: dd, speech: Math.max(1, dd - 0.6), final: !(t > 0.05) }; it.caps = captionChunks(e.texto, it.speech);
   const base = tlX.L && tlX.L.pos[selScene] ? tlX.L.pos[selScene].t : 0;
   drawAt(ctx, c.width, c.height, { items: [it], base }, t > 0.05 ? t : 1);
 }
@@ -1704,11 +1827,11 @@ function durOf(e) {
 function tlLayout() { let t = 0, all = true; const pos = P.escenas.map(e => { const o = durOf(e); if (!o.ex) all = false; const r = { t, d: o.d, n: o.n }; t += o.d; return r; }); return { pos, total: t, all }; }
 async function tlDraw(cv) {
   const i = +cv.parentElement.dataset.i, e = P.escenas[i]; if (!e) return;
-  const key = [e.id, e.visual.tipo, e.visual.ver || 0, P.ajustes.estilo, P.ajustes.formato, e.texto, JSON.stringify(e.fx || {})].join('|'); let src = tlThumbs.get(key);
+  const key = [e.id, e.visual.tipo, e.visual.ver || 0, P.ajustes.estilo, P.ajustes.formato, e.texto, JSON.stringify(e.fx || {}), P.ajustes.collage ? 'c' : ''].join('|'); let src = tlThumbs.get(key);
   if (!src) {
     await fontsReady(); await prepVisual(e); const [W, H] = dims();
     src = document.createElement('canvas'); src.width = Math.round(W / 8); src.height = Math.round(H / 8);
-    const c = src.getContext('2d'); c.save(); c.scale(0.125, 0.125); drawScene(c, W, H, { e, i, dur: 1 }, 0); c.restore();
+    const c = src.getContext('2d'); c.save(); c.scale(0.125, 0.125); drawScene(c, W, H, { e, i, dur: 1, final: true }, 0); c.restore();
     tlThumbs.set(key, src); if (tlThumbs.size > 400) tlThumbs.delete(tlThumbs.keys().next().value);
   }
   cv.width = src.width; cv.height = src.height; cv.getContext('2d').drawImage(src, 0, 0);
@@ -1942,7 +2065,8 @@ $('#tl').addEventListener('click', ev => {
     toast(`Escena ${i + 1} dividida en dos` + (perdioVoz ? ' (hay que volver a grabar su voz)' : ''), () => { Object.assign(e, before); if (!before.voz) delete e.voz; P.escenas.splice(i + 1, 1); save(); renderStrip(); });
   }
 });
-const autoQ = e => [...new Set([keyword(P.titulo || ''), keyword(e.texto)].filter(Boolean).map(w => w.toLowerCase()))].join(' ');
+const autoQ = e => { if (P.ajustes.collage) { const pe = propios(e.texto); if (pe.ext.length) return masLarga(pe.ext); const q = [propios(P.titulo || '')[0], keyword(e.texto || '')].filter(Boolean).join(' ').trim(); if (q) return q; } return autoQ0(e); };
+const autoQ0 = e => [...new Set([keyword(P.titulo || ''), keyword(e.texto)].filter(Boolean).map(w => w.toLowerCase()))].join(' ');
 function bankLinks(q) {
   const v = P.ajustes.banco !== 'fotos', enc = encodeURIComponent(q.trim() || 'city'), dash = encodeURIComponent(q.trim().replace(/\s+/g, '-') || 'city');
   const px = v ? `https://www.pexels.com/search/videos/${enc}/` : `https://www.pexels.com/search/${enc}/`;
@@ -2069,7 +2193,20 @@ const bankErr = (err, src) => ({
 const limpia = h => { try { return (new DOMParser().parseFromString(String(h || ''), 'text/html').body.textContent || '').replace(/\s+/g, ' ').trim(); } catch (e) { return String(h || '').replace(/<[^>]+>/g, '').trim(); } };
 const licOk = l => { const L = String(l || '').toUpperCase().trim(); return /^(CC0|PUBLIC DOMAIN|PD)/.test(L) || (/^CC BY/.test(L) && !/(SA|NC|ND)/.test(L.replace(/^CC BY/, ''))); };
 const porOrientacion = (a, b) => ((b.h > b.w) === isV()) - ((a.h > a.w) === isV());
+/* los bancos libres están en inglés: Wikipedia traduce el nombre («Universidad de Edimburgo» -> «University of Edinburgh») */
+const enCache = new Map();
+async function enTitulo(q) {
+  const k = String(q).toLowerCase().trim(); if (enCache.has(k)) return enCache.get(k);
+  let out = q; const norm = x => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  try {
+    const r = await fetch(`https://es.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrlimit=1&prop=langlinks&lllang=en&format=json&origin=*`);
+    const d = await r.json(), pg = Object.values((d.query && d.query.pages) || {})[0], ll = pg && pg.langlinks && pg.langlinks[0];
+    if (ll && ll['*'] && norm(pg.title).split(/[^a-z0-9]+/).some(w => w.length > 3 && norm(q).includes(w))) out = ll['*'];
+  } catch (e) { }
+  enCache.set(k, out); return out;
+}
 async function libreSearch(src, tipo, q, lang, n) {
+  if (P.ajustes.collage && q) q = await enTitulo(q);
   const qq = encodeURIComponent((q || '').trim().slice(0, 95) || 'nature'); let r;
   try {
     if (src === 'nasa') r = await fetch(`https://images-api.nasa.gov/search?q=${qq}&media_type=${tipo === 'videos' ? 'video' : 'image'}&page_size=${Math.min(n, 30)}`);
@@ -2862,7 +2999,7 @@ ${P.guion.slice(0, 9000)}`, { modelTier: 'quick' });
 async function drawThumb() {
   await fontsReady();
   const c = $('#thumb'), ctx = c.getContext('2d'), W = 1280, H = 720; const e = P.escenas[+$('#thScene').value || 0];
-  if (e) { await prepVisual(e); drawScene(ctx, W, H, { e, i: +$('#thScene').value || 0, dur: 1 }, 0, true); } else { ctx.fillStyle = PAL.ink; ctx.fillRect(0, 0, W, H); }
+  if (e) { await prepVisual(e); drawScene(ctx, W, H, { e, i: +$('#thScene').value || 0, dur: 1, final: true }, 0, true); } else { ctx.fillStyle = PAL.ink; ctx.fillRect(0, 0, W, H); }
   const g = ctx.createLinearGradient(0, 0, W, 0); const sh = ST().shade; g.addColorStop(0, `rgba(${sh},.92)`); g.addColorStop(0.62, `rgba(${sh},.55)`); g.addColorStop(1, `rgba(${sh},0)`);
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   const txt = $('#thText').value || P.titulo || ''; let fs = 96; ctx.font = stFont(fs);
