@@ -132,17 +132,23 @@ window.VozTV = (() => {
     const { session, cfg } = loaded[lang];
     const idsList = await phonemize(splitText(text), cfg.espeak.voice);
     const pcms = [], inf = cfg.inference;
-    for (const ids of idsList) {
-      if (!ids || !ids.length) continue;
+    /* Solo valen los sonidos que conoce este modelo de voz (ids 0..num_symbols-1). El pronunciador a veces
+       devuelve alguno de más (nombres árabes, símbolos raros…) y el modelo se paraba con «indices element out of data bounds». */
+    const valid = loaded[lang].valid || (loaded[lang].valid = new Set(Object.values(cfg.phoneme_id_map).flat()));
+    let omitidas = 0;
+    for (const raw of idsList) {
+      const ids = (raw || []).filter(i => valid.has(i));
+      if (ids.length < 3) continue;
       const feeds = {
         input: new ort.Tensor('int64', BigInt64Array.from(ids.map(BigInt)), [1, ids.length]),
         input_lengths: new ort.Tensor('int64', BigInt64Array.from([BigInt(ids.length)]), [1]),
         scales: new ort.Tensor('float32', Float32Array.from([inf.noise_scale, inf.length_scale / rate, inf.noise_w]), [3])
       };
-      const res = await session.run(feeds);
+      let res; try { res = await session.run(feeds); } catch (e) { omitidas++; console.warn('Voz: se omite una frase que el modelo no puede leer', e); continue; }
       pcms.push(res.output.data);
       pcms.push(new Float32Array(Math.round(cfg.audio.sample_rate * 0.12)));
     }
+    if (!pcms.length) pcms.push(new Float32Array(Math.round(cfg.audio.sample_rate * (omitidas ? 0.6 : 0.3))));
     const len = pcms.reduce((a, b) => a + b.length, 0);
     const out = new Float32Array(len); let o = 0;
     for (const p of pcms) { out.set(p, o); o += p.length; }
