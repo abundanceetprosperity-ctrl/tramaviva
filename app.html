@@ -177,6 +177,7 @@ dialog.wide{max-width:min(920px,94vw)}
   <span class="meta" id="saved" style="color:#9aa0c8"></span>
   <button class="btn ghost" id="bProjects" type="button">Mis proyectos</button>
   <button class="btn ghost" id="bCuenta" type="button" hidden>Entrar</button>
+  <button class="btn or" id="bComprar" type="button" hidden>Versión completa</button>
   <button class="btn cy" id="bNew" type="button">Nuevo vídeo</button>
 </header>
 <nav class="steps" aria-label="Pasos">
@@ -202,6 +203,7 @@ dialog.wide{max-width:min(920px,94vw)}
       <div><label class="f" for="auEst">Estilo de los dibujos</label><select id="auEst"></select></div>
       <div><label class="f" for="auFmt">Formato</label><select id="auFmt"><option value="h">Horizontal (YouTube)</option><option value="v">Vertical (Shorts, Reels)</option></select></div>
     </div>
+    <p class="hint" id="trialNote" hidden style="margin:12px 0 0"></p>
     <label class="chk" style="margin-top:10px"><input type="checkbox" id="auPj"> Con un presentador dibujado que aparece en todas las escenas</label>
     <div class="row" style="margin-top:14px"><button class="btn or" id="bAuto" type="button">Hazlo todo</button><button class="btn sm" id="bAutoStop" type="button" hidden>Parar</button><span class="meta" id="auMsg" aria-live="polite"></span></div>
     <div class="prog" id="auProg" hidden><div class="bar"><i></i></div><p></p></div>
@@ -440,6 +442,7 @@ dialog.wide{max-width:min(920px,94vw)}
       <div id="rOut" hidden style="margin-top:14px">
         <video id="vOut" controls playsinline></video>
         <div class="row" style="margin-top:10px"><button class="btn cy" id="bDlVideo" type="button">Descargar vídeo</button><span class="meta" id="vMeta"></span></div>
+        <div class="ok" id="trialCta" hidden style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1 1 220px"><b>¿Te ha gustado?</b> <span id="trialCtaTxt"></span></span><button class="btn sm or" id="bCtaComprar" type="button">Ver la versión completa</button></div>
         <p class="hint" id="dlHint" hidden>Si el botón no funciona aquí, haz clic derecho sobre el vídeo y elige «Guardar vídeo como».</p>
       </div>
     </div>
@@ -546,6 +549,13 @@ dialog.wide{max-width:min(920px,94vw)}
     <button class="btn" id="cuSalir" type="button">Salir</button>
   </div>
   <p class="meta" id="cuMsg" aria-live="polite" style="margin:12px 0 0"></p>
+</div></dialog>
+<dialog id="dCompra"><div class="dlg">
+  <div class="row" style="justify-content:space-between"><h2 style="margin:0">Tramaviva completo</h2><button class="btn sm" id="cpClose" type="button">Cerrar</button></div>
+  <p class="lead" id="cpTxt" style="margin:10px 0 12px"></p>
+  <ul style="margin:0 0 6px;padding-left:20px;line-height:1.8"><li>Vídeos de hasta 30 minutos</li><li>Guion con IA escrito por partes para vídeos largos</li><li>Voz, música, subtítulos, clips de Pexels y Pixabay y paquete de YouTube</li></ul>
+  <div class="row" style="margin-top:16px"><a class="btn or" id="cpGo" href="#" target="_blank" rel="noopener" hidden>Comprar Tramaviva</a></div>
+  <p class="meta" id="cpSoon" hidden style="margin:12px 0 0">La compra se abrirá muy pronto. Mientras tanto puedes seguir probando con vídeos de 1 minuto.</p>
 </div></dialog>
 <dialog id="dConfirm"><div class="dlg">
   <h2 id="cTitle">¿Seguro?</h2><p id="cText" class="lead"></p>
@@ -1110,6 +1120,27 @@ $('#bAiGen').onclick = async () => {
   } finally { $('#bAiGen').disabled = false; $('#bAiStop').hidden = true; aiCtl = null; }
 };
 $('#bAiStop').onclick = () => aiCtl && aiCtl.abort();
+
+/* ---------- versión de prueba: vídeos de 1 minuto y enlace para comprar ---------- */
+const trialMin = () => { const t = window.TV_CONFIG && TV_CONFIG.prueba; return t && t.activa && !(window.claude && claude.use) ? (+t.minutos || 1) : 0; };
+const compraURL = () => String((window.TV_CONFIG || {}).compraUrl || '').trim();
+const txtMin = m => m + (m === 1 ? ' minuto' : ' minutos');
+function abrirCompra(motivo) {
+  $('#cpTxt').textContent = motivo || `Esta es la prueba gratuita: vídeos de hasta ${txtMin(trialMin() || 1)}. Si te ha gustado, consigue la versión completa.`;
+  const u = compraURL(); $('#cpGo').hidden = !u; $('#cpSoon').hidden = !!u; if (u) $('#cpGo').href = u;
+  if (!$('#dCompra').open) $('#dCompra').showModal();
+}
+function aplicarPrueba() {
+  const m = trialMin(); if (!m) return;
+  ['#auMin', '#aiMin'].forEach(sel => { const o = $(sel); [...o.options].forEach(x => { if (+x.value > m) x.remove(); }); o.value = String(m); });
+  $('#bComprar').hidden = false; $('#bComprar').textContent = compraURL() ? 'Comprar Tramaviva' : 'Versión completa';
+  $('#trialNote').hidden = false; $('#trialNote').textContent = `Prueba gratis: vídeos de hasta ${txtMin(m)}. La versión completa llega a 30 minutos.`;
+  $('#trialCtaTxt').textContent = `Esto es la prueba gratuita (hasta ${txtMin(m)}). La versión completa llega a 30 minutos.`;
+}
+$('#bComprar').onclick = () => abrirCompra();
+$('#bCtaComprar').onclick = () => abrirCompra();
+$('#cpClose').onclick = () => $('#dCompra').close();
+aplicarPrueba();
 
 /* ---------- cuentas de la web propia: registro con Supabase y guion con IA en tu servidor ---------- */
 /* Solo funciona fuera de Claude y cuando config.js trae la dirección y la clave pública de Supabase. */
@@ -2101,7 +2132,8 @@ function renderSummary() {
   $('#bRender').disabled = !!w.length;
 }
 function softWarnings() {
-  const a = P.ajustes, w = [];
+  const a = P.ajustes, w = [], lim = trialMin();
+  if (lim && words(P.guion).length / 145 > lim * 1.25) w.push(`Tu guion dura unos ${fmtTime(words(P.guion).length / 145 * 60)} y la prueba gratuita llega a ${txtMin(lim)}: acórtalo para poder crear el vídeo.`);
   if (a.voz === 'propia' && P.narracion && P.narracionGuion != null && P.narracionGuion !== P.guion) w.push('Voz sin actualizar: cambiaste el guion después de subir o grabar tu narración, así que la voz y los subtítulos pueden no coincidir.');
   if (a.voz === 'escenas') {
     const old = P.escenas.map((e, i) => vozState(e) === 'old' ? i + 1 : 0).filter(Boolean), none = P.escenas.map((e, i) => vozState(e) === 'no' ? i + 1 : 0).filter(Boolean);
@@ -2189,6 +2221,8 @@ $('#bRender').onclick = async () => {
     if (sig.aborted) throw new Error('cancelado');
     if (P.ajustes.voz === 'tv') await ensureVoice(pr);
     const tl = await buildTimeline((f, t) => setProg(pr, f * 0.3, t), sig); lastTL = tl;
+    const lim = trialMin();
+    if (lim && tl.total > lim * 60 * 1.25) { abrirCompra(`Tu vídeo dura ${fmtTime(tl.total)} y la prueba gratuita llega a ${txtMin(lim)}. Acorta el guion o consigue la versión completa.`); throw new Error(`en la prueba los vídeos duran hasta ${txtMin(lim)} (el tuyo, ${fmtTime(tl.total)})`); }
     setProg(pr, 0.3, 'Preparando imágenes…'); for (const it of tl.items) await prepVisual(it.e); await fontsReady();
     setProg(pr, 0.32, 'Mezclando el audio…'); const mix = await mixAudio(tl, 48000);
     const [W, H] = dims(); const vcfg = await pickVideoConfig(W, H); const acfg = mix ? await pickAudioConfig() : null;
@@ -2199,7 +2233,7 @@ $('#bRender').onclick = async () => {
     lastVideo = { blob, url: URL.createObjectURL(blob), ext: blob.type.includes('mp4') ? 'mp4' : 'webm' };
     $('#vOut').src = lastVideo.url; $('#rOut').hidden = false; pr.hidden = true;
     $('#vMeta').textContent = `${lastVideo.ext.toUpperCase()} · ${fmtTime(tl.total)} · ${(blob.size / 1048576).toFixed(1)} MB · listo en ${fmtTime((performance.now() - t0) / 1000)}`;
-    buildPackage(tl, true); renderSummary();
+    buildPackage(tl, true); renderSummary(); $('#trialCta').hidden = !trialMin();
   } catch (e) {
     pr.hidden = true; $('#rInfo').textContent = sig.aborted ? 'Cancelado.' : 'No se pudo crear el vídeo: ' + (e && e.message || e);
   } finally { $('#bRender').disabled = false; $('#bCancel').hidden = true; }
