@@ -420,9 +420,11 @@ dialog.wide{max-width:min(920px,94vw)}
         <label><input type="radio" name="sub" value="grande">Grandes</label>
         <label><input type="radio" name="sub" value="no">Sin subtítulos</label>
       </div>
+      <div hidden><!-- el estilo visual se oculta: se conserva el que tenga cada proyecto -->
       <h2 style="margin-top:22px">Estilo visual</h2>
       <p class="hint" style="margin-top:2px">Cambia las tarjetas, la miniatura y cómo dibuja la IA. Las ilustraciones ya hechas se rehacen con «Ilustrar todas con IA».</p>
       <div class="styles" id="styles" role="radiogroup" aria-label="Estilo visual"></div>
+      </div>
       <h2 style="margin-top:22px">Imágenes</h2>
       <span class="f" style="display:block;margin-top:12px">Transición entre escenas</span>
       <div class="seg" role="radiogroup" aria-label="Transición entre escenas"><label><input type="radio" name="trans" value="fundido">Fundido</label><label><input type="radio" name="trans" value="deslizar">Deslizar</label><label><input type="radio" name="trans" value="barrido">Barrido</label><label><input type="radio" name="trans" value="zoom">Zoom</label><label><input type="radio" name="trans" value="corte">Corte</label></div>
