@@ -93,6 +93,7 @@ textarea{resize:vertical}
 .seg label:has(input:focus-visible){outline:3px solid var(--orange);outline-offset:-3px}
 input[type=range]{width:100%;accent-color:var(--cyan)}
 /* monitor y tira */
+.mbtn{background:#2a3058!important;color:#fff!important;border-color:#3a4170!important}
 #v-editor .monitor{position:static;max-width:780px;margin:0 auto 16px}
 .warnbox{background:#fff4d6;color:#6b4a00;border:1px solid #f0d28a;border-radius:8px;padding:5px 9px;font-size:13px;margin-top:6px}
 .bench{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start}
@@ -494,8 +495,10 @@ dialog.wide{max-width:min(920px,94vw)}
     <div class="monitor">
       <canvas id="mon" width="1280" height="720" aria-label="Monitor de vista previa"></canvas>
       <div class="row">
-        <button class="btn or" id="bPlay" type="button">Reproducir desde aquí</button>
+        <button class="btn sm mbtn" id="bPrev" type="button" title="Escena anterior" aria-label="Escena anterior">⏮</button>
+        <button class="btn or" id="bPlay" type="button" title="Reproducir o pausar (barra espaciadora)">Reproducir desde aquí</button>
         <button class="btn sm" id="bStop" type="button" hidden style="background:#2a3058;color:#fff;border-color:#3a4170">Parar</button>
+        <button class="btn sm mbtn" id="bNext" type="button" title="Escena siguiente" aria-label="Escena siguiente">⏭</button>
         <span class="meta" id="monInfo" style="color:#cfd2e6"></span>
       </div>
       <div class="prog" id="monProg" hidden><div class="bar"><i></i></div><p style="color:#cfd2e6"></p></div>
@@ -2567,9 +2570,26 @@ $('#bPjDel').onclick = () => { P.personaje = ''; save(); renderPj(); };
 
 /* reproducción en el monitor */
 let play = null;
-async function stopPlay() { pauseVideos(); $$('#tlTrack .tl-b.now').forEach(b => b.classList.remove('now')); if (!play) return; play.stop = true; try { play.src && play.src.stop(); } catch (e) { } try { await play.ac.close(); } catch (e) { } play = null; $('#bStop').hidden = true; $('#bPlay').disabled = false; drawMonitor(); }
+async function stopPlay() { pauseVideos(); $$('#tlTrack .tl-b.now').forEach(b => b.classList.remove('now')); if (!play) return; play.stop = true; try { play.src && play.src.stop(); } catch (e) { } try { await play.ac.close(); } catch (e) { } play = null; $('#bStop').hidden = true; $('#bPlay').disabled = false; $('#bPlay').textContent = 'Reproducir desde aquí'; drawMonitor(); }
 $('#bStop').onclick = stopPlay;
+async function togglePause() {
+  if (!play) return; const me = play;
+  if (me.paused) { me.paused = false; $('#bPlay').textContent = '⏸ Pausa'; try { await me.ac.resume(); } catch (e) { } }
+  else { me.paused = true; pauseVideos(); $('#bPlay').textContent = '▶ Seguir'; try { await me.ac.suspend(); } catch (e) { } }
+}
+async function stepScene(d) {
+  if (!P.escenas.length) return; const k = Math.max(0, Math.min(P.escenas.length - 1, selScene + d)), was = !!play;
+  if (play) await stopPlay(); selectScene(k, 0, false); if (was) $('#bPlay').click();
+}
+$('#bPrev').onclick = () => stepScene(-1);
+$('#bNext').onclick = () => stepScene(1);
+document.addEventListener('keydown', ev => {
+  if (ev.code !== 'Space' || ev.ctrlKey || ev.metaKey || ev.altKey || !$('#v-editor').classList.contains('on')) return;
+  if (ev.target.closest('input,textarea,select,button,a,[contenteditable]')) return;
+  ev.preventDefault(); if (!$('#bPlay').disabled) $('#bPlay').click();
+});
 $('#bPlay').onclick = async () => {
+  if (play) { togglePause(); return; }
   if (!P.escenas.length) return;
   const ac = new AudioContext(); $('#bPlay').disabled = true;
   try {
@@ -2581,12 +2601,12 @@ $('#bPlay').onclick = async () => {
     renderTimeline();
     const from = tl.items[selScene] ? tl.items[selScene].start + Math.max(0, Math.min(plOff, tl.items[selScene].dur - 0.05)) : 0;
     const mix = await mixAudio(tl, ac.sampleRate);
-    play = { ac, stop: false };
+    play = { ac, stop: false, paused: false }; $('#bPlay').disabled = false; $('#bPlay').textContent = '⏸ Pausa';
     if (mix) { const b = ac.createBuffer(1, mix.length, ac.sampleRate); b.copyToChannel(mix, 0); play.src = ac.createBufferSource(); play.src.buffer = b; play.src.connect(ac.destination); play.src.start(0, from); }
     const t0 = ac.currentTime - from; $('#bStop').hidden = false;
     const c = $('#mon'), ctx = c.getContext('2d'), me = play;
     const loop = () => {
-      if (me.stop) return; const T = ac.currentTime - t0;
+      if (me.stop) return; if (me.paused) { requestAnimationFrame(loop); return; } const T = ac.currentTime - t0;
       if (T >= tl.total) { stopPlay(); return; }
       if (tl.hasVideo) liveVideos(tl, T);
       drawAt(ctx, c.width, c.height, tl, T);
