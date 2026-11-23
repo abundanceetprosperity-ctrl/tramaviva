@@ -557,6 +557,17 @@ dialog.wide{max-width:min(920px,94vw)}
   <div class="row" style="margin-top:16px"><a class="btn or" id="cpGo" href="#" target="_blank" rel="noopener" hidden>Comprar Tramaviva</a></div>
   <p class="meta" id="cpSoon" hidden style="margin:12px 0 0">La compra se abrirá muy pronto. Mientras tanto puedes seguir probando con vídeos de 1 minuto.</p>
 </div></dialog>
+<dialog id="dRell"><div class="dlg">
+  <h2 style="margin:0">Rellenar desde los bancos</h2>
+  <p class="hint" id="rlTxt" style="margin:8px 0 14px"></p>
+  <span class="f" style="display:block;margin-top:0">De dónde</span>
+  <div class="seg" role="radiogroup" aria-label="Banco"><label><input type="radio" name="rlSrc" value="pexels">Pexels</label><label><input type="radio" name="rlSrc" value="pixabay">Pixabay</label><label><input type="radio" name="rlSrc" value="nasa">NASA</label><label><input type="radio" name="rlSrc" value="wikimedia">Wikimedia</label><label><input type="radio" name="rlSrc" value="openverse">Openverse</label></div>
+  <span class="f" style="display:block">Qué</span>
+  <div class="seg" role="radiogroup" aria-label="Tipo"><label><input type="radio" name="rlTipo" value="videos">Vídeos</label><label><input type="radio" name="rlTipo" value="fotos">Fotos</label></div>
+  <label class="chk" style="margin-top:14px"><input type="checkbox" id="rlOtros" checked> Si no encuentra algo, probar con los demás bancos</label>
+  <p class="meta" id="rlNota" style="margin:8px 0 0;min-height:1.4em"></p>
+  <div class="row" style="margin-top:14px;justify-content:flex-end"><button class="btn" id="rlNo" type="button">Cancelar</button><button class="btn or" id="rlGo" type="button">Rellenar</button></div>
+</div></dialog>
 <dialog id="dConfirm"><div class="dlg">
   <h2 id="cTitle">¿Seguro?</h2><p id="cText" class="lead"></p>
   <div class="row" style="justify-content:flex-end"><button class="btn" id="cNo" type="button">Cancelar</button><button class="btn or" id="cYes" type="button">Sí</button></div>
@@ -1292,7 +1303,7 @@ $('#bAuto').onclick = async () => {
       if (P.guion.trim() && !P.demo && !(await ask('¿Sustituir el guion?', 'Hazlo todo escribirá un guion nuevo en lugar del que tienes ahora.', 'Sustituir'))) throw new Error('parado');
       P.demo = true; $('#aiTema').value = tema; $('#aiMin').value = $('#auMin').value; $('#aiLang').value = lang;
       const before = P.guion; await $('#bAiGen').onclick(); stopped();
-      if (!P.guion.trim() || P.guion === before) throw new Error('No se pudo escribir el guion.');
+      if (!P.guion.trim() || P.guion === before) throw new Error($('#aiMsg').textContent.trim() || 'No se pudo escribir el guion.');
     }
     if (P.titulo === 'Vídeo sin título' && tema) { P.titulo = tema.charAt(0).toUpperCase() + tema.slice(1, 90); $('#ptitle').value = P.titulo; }
     rebuildScenes(mio); selScene = 0; save();
@@ -1300,8 +1311,8 @@ $('#bAuto').onclick = async () => {
       step(0.12, 'Creando el estilo visual del vídeo…');
       P.biblia = ''; P.personaje = ''; P.libre = null; await $('#bBiblia').onclick(); stopped();
       if (!$('#auPj').checked) { P.personaje = ''; save(); renderPj(); }
-    } else if (bankSrc()) {
-      step(0.15, `Buscando vídeos en ${bankName(bankSrc())}…`); await fillFromBanks(false); stopped();
+    } else {
+      const sb = bankSrc() || 'wikimedia'; step(0.15, `Buscando imágenes en ${bankName(sb)}…`); await fillFromBanks(false, sb); stopped();
     }
     pr.hidden = true; $('#auMsg').textContent = 'Creando el vídeo: mira el avance aquí.';
     const prevVid = lastVideo; show('exportar'); await $('#bRender').onclick();
@@ -1526,7 +1537,8 @@ function bankLinks(q) {
   const v = P.ajustes.banco !== 'fotos', enc = encodeURIComponent(q.trim() || 'city'), dash = encodeURIComponent(q.trim().replace(/\s+/g, '-') || 'city');
   const px = v ? `https://www.pexels.com/search/videos/${enc}/` : `https://www.pexels.com/search/${enc}/`;
   const pb = v ? `https://pixabay.com/videos/search/${dash}/` : `https://pixabay.com/images/search/${dash}/`;
-  return `<a href="${px}" target="_blank" rel="noopener">Pexels</a><a href="${pb}" target="_blank" rel="noopener">Pixabay</a>`;
+  const wk = `https://commons.wikimedia.org/w/index.php?search=${enc}&ns6=1`, ns = `https://images.nasa.gov/search?q=${enc}`, ov = `https://openverse.org/search/?q=${enc}`;
+  return `<a href="${px}" target="_blank" rel="noopener">Pexels</a><a href="${pb}" target="_blank" rel="noopener">Pixabay</a><a href="${ns}" target="_blank" rel="noopener">NASA</a><a href="${wk}" target="_blank" rel="noopener">Wikimedia</a><a href="${ov}" target="_blank" rel="noopener">Openverse</a>`;
 }
 $$('input[name=banco]').forEach(r => r.onchange = () => { P.ajustes.banco = r.value; save(); renderStrip(); });
 /* arrastrar un archivo descargado directamente sobre una escena */
@@ -1784,13 +1796,29 @@ $('#bkGrid').addEventListener('click', async ev => {
 });
 function bankSrc() { const pref = P.ajustes.bancoSrc; return pref && puedeBuscar(pref) ? pref : getKey('pexels') ? 'pexels' : getKey('pixabay') ? 'pixabay' : null; }
 $('#bBankAll').onclick = () => fillFromBanks(true);
-async function fillFromBanks(preguntar) {
+const ORDEN = ['pexels', 'pixabay', 'nasa', 'wikimedia', 'openverse'];
+function elegirRelleno(n) {
+  return new Promise(res => {
+    const d = $('#dRell'), pref = P.ajustes.bancoSrc && puedeBuscar(P.ajustes.bancoSrc) ? P.ajustes.bancoSrc : (bankSrc() || 'wikimedia');
+    $$('input[name=rlSrc]').forEach(r => { const ok = puedeBuscar(r.value); r.disabled = !ok; r.checked = r.value === pref; r.parentElement.style.opacity = ok ? '' : '.45'; r.parentElement.title = ok ? '' : 'Falta tu clave: se pega en «Buscar vídeos y fotos»'; });
+    $$('input[name=rlTipo]').forEach(r => r.checked = r.value === (P.ajustes.banco === 'fotos' ? 'fotos' : 'videos'));
+    $('#rlOtros').checked = true; $('#rlTxt').textContent = `${n} ${n === 1 ? 'escena sin imagen' : 'escenas sin imagen'}. Elige de dónde sacar un vídeo o una foto para cada una; Tramaviva lo coloca con el crédito de su autor. Después puedes cambiar las que no te gusten.`;
+    const val = n => (($$(`input[name=${n}]`).find(r => r.checked)) || {}).value;
+    const nota = () => { const x = val('rlSrc'); $('#rlNota').textContent = SOLO_FOTOS.has(x) ? `${bankName(x)} solo tiene fotos.` : x === 'nasa' ? 'NASA: espacio y ciencia. Busca mejor en inglés.' : ''; };
+    $$('input[name=rlSrc]').forEach(r => r.onchange = nota); nota();
+    const fin = v => { d.onclose = null; if (d.open) d.close(); res(v); };
+    $('#rlGo').onclick = () => fin({ src: val('rlSrc') || pref, tipo: val('rlTipo') || 'videos', otros: $('#rlOtros').checked });
+    $('#rlNo').onclick = () => fin(null); d.onclose = () => res(null);
+    d.showModal();
+  });
+}
+async function fillFromBanks(preguntar, srcFijo) {
   const list = P.escenas.map((e, i) => i).filter(i => P.escenas[i].visual.tipo === 'tarjeta');
   if (!list.length) { if (preguntar) toast('Todas las escenas tienen ya imagen.'); return; }
-  const src = bankSrc();
-  if (!src) { if (preguntar) openBank(list[0]); return; }
-  const tipo = tipoPara(src, P.ajustes.banco === 'fotos' ? 'fotos' : 'videos');
-  if (preguntar && !(await ask('¿Rellenar desde los bancos?', `Tramaviva buscará en ${bankName(src)} ${tipo === 'videos' ? 'un vídeo' : 'una foto'} para cada una de las ${list.length} escenas sin imagen y lo pondrá con el crédito de su autor. Después puedes cambiar los que no te gusten.`, 'Rellenar'))) return;
+  let src, tipo, otros = true;
+  if (preguntar) { const o = await elegirRelleno(list.length); if (!o) return; src = o.src; tipo = tipoPara(src, o.tipo); otros = o.otros; P.ajustes.bancoSrc = src; P.ajustes.banco = o.tipo; save(); }
+  else { src = srcFijo || bankSrc(); if (!src) return; tipo = tipoPara(src, P.ajustes.banco === 'fotos' ? 'fotos' : 'videos'); }
+  const alternativas = ORDEN.filter(x => x !== src && puedeBuscar(x));
   const b = $('#bBankAll'), used = new Set(P.escenas.map(e => e.bancoId).filter(Boolean)); b.disabled = true; let ok = 0, fail = 0;
   try {
     for (const [k, i] of list.entries()) {
@@ -1799,9 +1827,10 @@ async function fillFromBanks(preguntar) {
       let pausas = 0, parar = false;
       for (;;) {
         try {
-          const { res } = await searchWithFallback(src, tipo, e.busqueda || autoQ(e), qLangFor(e), e, 12);
+          const qq = e.busqueda || autoQ(e), lg = qLangFor(e); let { res } = await searchWithFallback(src, tipo, qq, lg, e, 12), usado = src;
+          if (!res.length && otros) for (const alt of alternativas) { try { const r2 = await searchWithFallback(alt, tipoPara(alt, tipo), qq, lg, e, 12); if (r2.res.length) { res = r2.res; usado = alt; break; } } catch (_) { } }
           const it = res.find(x => !used.has(x.id)) || res[0]; if (!it) { fail++; break; }
-          await placeBank(i, it, src, false); used.add(it.id); ok++;
+          await placeBank(i, it, usado, false); used.add(it.id); ok++;
           if (ok % 4 === 0) { save(); renderStrip(); }
           break;
         } catch (err) {
