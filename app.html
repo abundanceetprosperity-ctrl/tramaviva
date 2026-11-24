@@ -77,7 +77,7 @@ textarea{resize:vertical}
 .choice input{margin-top:4px;accent-color:var(--cyan);width:18px;height:18px;flex:none}
 .choice strong{display:block}
 .choice span{font-size:14px;color:var(--muted)}
-.choice:has(input:checked){border-color:var(--cyan);background:var(--soft)}
+.choice:has(input:checked),#retroCard.on{border-color:var(--cyan);background:var(--soft)}
 .styles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
 .sty{border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;background:var(--bg);display:block}
 .sty input{position:absolute;opacity:0;pointer-events:none}
@@ -379,6 +379,11 @@ dialog.wide{max-width:min(920px,94vw)}
       <label class="chk"><input type="checkbox" id="musDuck"> Bajar la música mientras se habla</label>
       <div class="row" style="margin-top:10px"><button class="btn" id="bMusTest" type="button">Escuchar 10 segundos</button><span class="meta" id="musMsg"></span></div>
     </div>
+    <h2 style="margin-top:22px">Sonido del vídeo</h2>
+    <p class="hint" style="margin-top:0">Pequeños retoques de audio, como los de un editor de vídeo. Se aplican al reproducir y al exportar.</p>
+    <label class="choice" style="margin-top:8px"><input type="checkbox" id="vozClara"><div><strong>Voz más clara</strong><span>Quita el retumbe grave, realza la voz y empareja el volumen para que se entienda mejor, como el «aumentar claridad de la voz» de las apps de edición.</span></div></label>
+    <label class="choice" style="margin-top:8px"><input type="checkbox" id="nivelar"><div><strong>Nivelar el volumen</strong><span>Sube todo el audio del vídeo a un volumen parejo y estándar para YouTube, sin que sature.</span></div></label>
+    <label class="choice" style="margin-top:8px"><input type="checkbox" id="sfx"><div><strong>Efectos de sonido automáticos</strong><span>Un «whoosh» suave en cada transición entre escenas y un «pop» cuando entra un texto en pantalla. Los crea Tramaviva, sin descargar nada.</span></div></label>
   </div>
   <div class="card ai" id="bibliaCard" style="margin-top:20px">
     <h2>Biblia visual y personaje</h2>
@@ -432,8 +437,8 @@ dialog.wide{max-width:min(920px,94vw)}
       <label class="choice" style="margin-top:8px"><input type="checkbox" id="album"><div><strong>Álbum de viaje</strong><span>Cada foto cae como una polaroid sobre una mesa de madera, con el sitio escrito a mano; las anteriores quedan debajo. Ideal para viajes.</span></div></label>
       <label class="choice" style="margin-top:8px"><input type="checkbox" id="noticiero"><div><strong>Noticiero</strong><span>Titular abajo (el capítulo o el título del vídeo), cinta de noticias que se desliza y el nombre de tu canal en la esquina.</span></div></label>
       <div id="canalBox" style="margin-top:6px"><label class="f" for="canal">Nombre del canal (opcional)</label><input type="text" id="canal" maxlength="24" placeholder="Por ejemplo: Mundo al día" style="width:100%;margin-top:4px"></div>
-      <label class="f" for="retro" style="display:block;margin-top:12px">Look retro</label>
-      <select id="retro" style="margin-top:6px"><option value="">Ninguno</option><option value="vhs">VHS · cinta de vídeo de los 90</option><option value="s8">Super 8 · película casera antigua</option></select>
+      <div class="choice" id="retroCard" style="margin-top:8px;cursor:default"><div style="flex:1;min-width:0"><label for="retro"><strong>Look retro</strong></label><span style="display:block">Aspecto de cinta VHS de los 90 o de película Super 8 casera: color gastado, grano y rayas. Se puede combinar con Noticiero.</span>
+        <select id="retro" style="margin-top:8px;width:100%"><option value="">Ninguno</option><option value="vhs">VHS · cinta de vídeo de los 90</option><option value="s8">Super 8 · película casera antigua</option></select></div></div>
       <label class="choice" style="margin-top:8px"><input type="checkbox" id="cineLook"><div><strong>Documental de cine</strong><span>Barras negras de cine (en horizontal), grano de película, color cálido, viñeta, fundidos más lentos y títulos de capítulo sobrios.</span></div></label>
       <label class="choice" style="margin-top:8px"><input type="checkbox" id="datos"><div><strong>Datos animados</strong><span>Las cifras del guion (porcentajes, dinero, millones, años) aparecen en grande con un contador justo cuando la voz las dice.</span></div></label>
       <label class="choice" style="margin-top:8px"><input type="checkbox" id="mov"><div><strong>Movimiento suave</strong><span>Zoom lento sobre cada imagen para que el vídeo no se vea estático.</span></div></label>
@@ -517,8 +522,11 @@ dialog.wide{max-width:min(920px,94vw)}
   </div>
   <section class="tl" id="tl" aria-label="Línea de tiempo" hidden>
     <div class="tl-bar">
+      <button class="btn sm" id="bUndo" type="button" title="Deshacer (Cmd+Z)" aria-label="Deshacer" disabled>↶</button>
+      <button class="btn sm" id="bRedo" type="button" title="Rehacer (Cmd+Mayús+Z)" aria-label="Rehacer" disabled>↷</button>
       <button class="btn sm" type="button" data-tl="split" title="Divide la escena marcada por donde está el cabezal rojo">Dividir</button>
       <button class="btn sm" type="button" data-tl="addtxt" title="Añade un texto en pantalla donde está el cabezal rojo">+ Texto</button>
+      <select class="btn sm" id="txtTpl" title="Añade un texto con un estilo ya hecho" style="padding:4px 8px"><option value="">+ Plantilla…</option><option value="titular">Titular</option><option value="cita">Cita</option><option value="dato">Dato grande</option><option value="rotulo">Nombre y cargo</option><option value="suscribete">Suscríbete</option></select>
       <button class="btn sm" type="button" data-tl="clone" title="Duplica la escena marcada">Clonar</button>
       <button class="btn sm" type="button" data-tl="del" title="Borra la escena marcada">Eliminar</button>
       <span class="meta" id="tlInfo"></span>
@@ -764,12 +772,43 @@ Imagina que tienes que contárselo a un amigo que no sabe nada del tema. Si te a
 ## Para terminar
 Preguntarte, repartir el estudio y explicarlo con tus palabras. Pruébalo esta semana con un solo tema y nota la diferencia. Si te ha servido, suscríbete y nos vemos en el próximo vídeo.`;
 
-const defAjustes = () => ({ voz: 'tv', rate: 1, formato: 'h', subt: 'karaoke', mov: true, capCard: true, estilo: 'marca', banco: 'videos', autoIlus: true, desglose: 'frases', durTotal: 0, segEscena: 5, pjModo: 'siempre', vozLang: 'es', trans: 'fundido', musica: 'gen', musMood: 'calma', musVol: 0.5, musDuck: true, creditos: true });
+const defAjustes = () => ({ voz: 'tv', rate: 1, formato: 'h', subt: 'karaoke', mov: true, capCard: true, estilo: 'marca', banco: 'videos', autoIlus: true, desglose: 'frases', durTotal: 0, segEscena: 5, pjModo: 'siempre', vozLang: 'es', trans: 'fundido', musica: 'gen', musMood: 'calma', musVol: 0.5, musDuck: true, creditos: true, vozClara: true, nivelar: true, sfx: false });
 const newProject = (titulo = 'Vídeo sin título', guion = '') => ({ id: uid(), titulo, guion, ajustes: defAjustes(), narracion: null, escenas: [], yt: { titulo: '', descripcion: '', etiquetas: '', miniEscena: 0, miniTexto: '' }, demo: false, actualizado: Date.now() });
 let P = null; let saveTimer;
+/* ---------- deshacer / rehacer ---------- */
+function cloneKeepBlobs(v) {
+  if (v == null || typeof v !== 'object') return v;
+  if (v instanceof Blob || v instanceof ArrayBuffer) return v; /* los archivos son inmutables: se comparten */
+  if (Array.isArray(v)) return v.map(cloneKeepBlobs);
+  const o = {}; for (const k in v) if (Object.prototype.hasOwnProperty.call(v, k)) o[k] = cloneKeepBlobs(v[k]); return o;
+}
+function histSig(pr) {
+  try { return JSON.stringify(pr, (k, val) => k === 'actualizado' ? 0 : (val instanceof Blob ? '#blob' + val.size : val)); } catch (e) { return Math.random() + ''; }
+}
+let undoStack = [], redoStack = [], histSigLast = '', histLock = false;
+function histReset() { undoStack = [cloneKeepBlobs(P)]; redoStack = []; histSigLast = histSig(P); histBtns(); }
+function histPush() {
+  if (histLock || !P) return; const sig = histSig(P); if (sig === histSigLast) return;
+  histSigLast = sig; undoStack.push(cloneKeepBlobs(P)); if (undoStack.length > 25) undoStack.shift(); redoStack = []; histBtns();
+}
+function histBtns() { const u = $('#bUndo'), r = $('#bRedo'); if (u) u.disabled = undoStack.length < 2; if (r) r.disabled = !redoStack.length; }
+async function histRestore(state) {
+  histLock = true; await stopPlay();
+  P = cloneKeepBlobs(state); P.ajustes = Object.assign(defAjustes(), P.ajustes || {});
+  lastTL = null; ownAudio = null; musBuf = null; if (lastVideo) { try { URL.revokeObjectURL(lastVideo.url); } catch (e) { } lastVideo = null; }
+  selScene = Math.min(selScene, Math.max(0, P.escenas.length - 1)); plOff = 0; tlSelTxt = null; $('#tlEd').hidden = true;
+  $('#guion').value = P.guion || ''; $('#ptitle').value = P.titulo || ''; gStats(); syncVozUI(); syncMusUI();
+  histSigLast = histSig(P); histBtns();
+  try { P.actualizado = Date.now(); await DB.put(P); $('#saved').textContent = 'Guardado'; } catch (e) { }
+  const vista = $$('.view').find(v => v.classList.contains('on')); const id = vista ? vista.id : '';
+  if (id === 'v-escenas' || id === 'v-editor') await renderStrip(); else if (id === 'v-exportar') renderSummary(); else if (id === 'v-voz') drawStylePrev();
+  histLock = false;
+}
+async function undo() { if (undoStack.length < 2) return; redoStack.push(undoStack.pop()); await histRestore(undoStack[undoStack.length - 1]); toast('Deshecho'); }
+async function redo() { if (!redoStack.length) return; const st = redoStack.pop(); undoStack.push(st); await histRestore(st); toast('Rehecho'); }
 function save(now) {
   clearTimeout(saveTimer); $('#saved').textContent = 'Guardando…';
-  const go = async () => { P.actualizado = Date.now(); await DB.put(P); $('#saved').textContent = 'Guardado'; };
+  const go = async () => { if (!histLock) histPush(); P.actualizado = Date.now(); await DB.put(P); $('#saved').textContent = 'Guardado'; };
   if (now) return go(); saveTimer = setTimeout(go, 600);
 }
 
@@ -1774,7 +1813,7 @@ function syncVozUI() {
   $$('input[name=banco]').forEach(r => r.checked = r.value === (a.banco || 'videos'));
   $('#styles').innerHTML = Object.entries(STYLES).map(([k, st]) => `<label class="sty"><input type="radio" name="estilo" value="${k}"${k === a.estilo ? ' checked' : ''}><div class="sw">${[st.cards[0].bg, st.cards[0].a, st.cards[0].b, (st.cards[1] || st.cards[0]).bg].map(c => `<i style="background:${c}"></i>`).join('')}</div><b>${st.nombre}</b><span>${st.desc}</span></label>`).join('');
   $('#autoIlus').checked = a.autoIlus !== false;
-  $('#album').checked = !!a.album; $('#noticiero').checked = !!a.noticiero; $('#canal').value = a.canal || ''; $('#canalBox').hidden = !a.noticiero; $('#cineLook').checked = !!a.cineLook; $('#retro').value = a.retro || ''; $('#datos').checked = a.datos !== false; $('#mov').checked = a.mov; $('#capCard').checked = a.capCard; $('#rate').value = a.rate; $('#rateV').textContent = String(a.rate.toFixed(2)).replace('.', ',');
+  $('#album').checked = !!a.album; $('#noticiero').checked = !!a.noticiero; $('#canal').value = a.canal || ''; $('#canalBox').hidden = !a.noticiero; $('#cineLook').checked = !!a.cineLook; $('#retro').value = a.retro || ''; $('#retroCard').classList.toggle('on', !!a.retro); $('#datos').checked = a.datos !== false; $('#mov').checked = a.mov; $('#capCard').checked = a.capCard; $('#rate').value = a.rate; $('#rateV').textContent = String(a.rate.toFixed(2)).replace('.', ',');
   $('#vozTV').hidden = a.voz !== 'tv'; $('#vozPropia').hidden = a.voz !== 'propia'; $('#vozEscenas').hidden = a.voz !== 'escenas';
   $$('input[name=trans]').forEach(r => r.checked = r.value === (a.trans || 'fundido'));
   $$('input[name=vozLang]').forEach(r => r.checked = r.value === vLang());
@@ -1792,6 +1831,7 @@ function syncMusUI() {
   const a = P.ajustes, m = a.musica || 'no';
   $$('input[name=mus]').forEach(r => r.checked = r.value === m);
   $('#musGen').hidden = m !== 'gen'; $('#musPropia').hidden = m !== 'propia'; $('#musVolBox').hidden = m === 'no';
+  $('#vozClara').checked = a.vozClara !== false; $('#nivelar').checked = a.nivelar !== false; $('#sfx').checked = !!a.sfx;
   $('#musMood').value = a.musMood || 'calma'; $('#musVol').value = a.musVol; $('#musVolV').textContent = Math.round(a.musVol * 100); $('#musDuck').checked = a.musDuck !== false;
   $('#musInfo').textContent = P.musica ? `Canción cargada: ${P.musica.name || 'música'} (${(P.musica.size / 1048576).toFixed(1)} MB). Se repite si el vídeo es más largo.` : 'Aún no has subido ninguna canción. Usa música que tengas derecho a publicar (por ejemplo, la biblioteca de audio de YouTube).';
 }
@@ -1799,6 +1839,9 @@ $$('input[name=mus]').forEach(r => r.onchange = () => { P.ajustes.musica = r.val
 $('#musMood').onchange = e => { P.ajustes.musMood = e.target.value; save(); };
 $('#musVol').oninput = e => { P.ajustes.musVol = +e.target.value; $('#musVolV').textContent = Math.round(P.ajustes.musVol * 100); save(); };
 $('#musDuck').onchange = e => { P.ajustes.musDuck = e.target.checked; save(); };
+$('#vozClara').onchange = e => { P.ajustes.vozClara = e.target.checked; save(); };
+$('#nivelar').onchange = e => { P.ajustes.nivelar = e.target.checked; save(); };
+$('#sfx').onchange = e => { P.ajustes.sfx = e.target.checked; save(); };
 $('#fMus').onchange = e => { const f = e.target.files[0]; if (!f) return; P.musica = f; musBuf = null; syncMusUI(); save(); toast('Canción cargada'); e.target.value = ''; };
 let musBuf = null;
 async function decodeMusic() {
@@ -1880,7 +1923,7 @@ $('#datos').onchange = e => { P.ajustes.datos = e.target.checked; save(); drawSt
 $('#album').onchange = e => { P.ajustes.album = e.target.checked; save(); drawStylePrev(); renderStrip(); };
 $('#noticiero').onchange = e => { P.ajustes.noticiero = e.target.checked; $('#canalBox').hidden = !e.target.checked; save(); drawStylePrev(); drawMonitor(); };
 $('#canal').oninput = e => { P.ajustes.canal = e.target.value; save(); drawStylePrev(); };
-$('#retro').onchange = e => { P.ajustes.retro = e.target.value; save(); drawStylePrev(); drawMonitor(); };
+$('#retro').onchange = e => { P.ajustes.retro = e.target.value; $('#retroCard').classList.toggle('on', !!e.target.value); save(); drawStylePrev(); drawMonitor(); };
 $('#cineLook').onchange = e => { P.ajustes.cineLook = e.target.checked; save(); drawStylePrev(); drawMonitor(); };
 $('#capCard').onchange = e => { P.ajustes.capCard = e.target.checked; drawStylePrev(); save(); };
 $('#rate').oninput = e => { P.ajustes.rate = +e.target.value; $('#rateV').textContent = (+e.target.value).toFixed(2).replace('.', ','); save(); };
@@ -2137,11 +2180,22 @@ $('#tdDel').onclick = () => {
   const l = txtList(), k = l.findIndex(q => q.id === tlSelTxt); if (k < 0) return; const [gone] = l.splice(k, 1); tlSelTxt = null; $('#tlEd').hidden = true; save(); tlTextRows(); drawMonitor(plOff);
   toast('Texto borrado', () => { l.splice(k, 0, gone); save(); tlTextRows(); drawMonitor(plOff); });
 };
-$('#tl').addEventListener('click', ev => {
-  const bt = ev.target.closest('[data-tl=addtxt]'); if (!bt || !P.escenas.length || !tlX.L) return; if (play) stopPlay();
-  const p = tlX.L.pos[selScene], T = Math.round((p.t + plOff) * 10) / 10, x = { id: uid(), t0: T, d: 3, texto: 'Tu texto', tam: 'm', color: '#ffffff', pos: 'centro', anim: 'aparecer', fondo: true };
+const TXT_TPL = {
+  '': { texto: 'Tu texto', tam: 'm', color: '#ffffff', pos: 'centro', anim: 'aparecer', fondo: true, d: 3 },
+  titular: { texto: 'TITULAR', tam: 'l', color: '#ffffff', pos: 'centro', anim: 'zoom', fondo: true, d: 3 },
+  cita: { texto: '«Escribe aquí la cita»', tam: 'm', color: '#ffffff', pos: 'centro', anim: 'aparecer', fondo: true, d: 4 },
+  dato: { texto: '100%', tam: 'xl', color: '#FF8A3D', pos: 'centro', anim: 'zoom', fondo: false, d: 2.5 },
+  rotulo: { texto: 'Nombre · Cargo', tam: 's', color: '#ffffff', pos: 'abajo', anim: 'deslizar', fondo: true, d: 4 },
+  suscribete: { texto: 'SUSCRÍBETE', tam: 'm', color: '#ffffff', pos: 'abajo', anim: 'zoom', fondo: true, d: 3 }
+};
+function nuevoTexto(tpl) {
+  if (!P.escenas.length || !tlX.L) return; if (play) stopPlay();
+  const p = tlX.L.pos[selScene], T = Math.round((p.t + plOff) * 10) / 10, base = TXT_TPL[tpl] || TXT_TPL[''];
+  const x = Object.assign({ id: uid(), t0: T }, base);
   txtList().push(x); save(); tlPickTxt(x.id); drawMonitor(plOff); const i = $('#tdTxt'); i.focus(); i.select();
-});
+}
+$('#tl').addEventListener('click', ev => { if (ev.target.closest('[data-tl=addtxt]')) nuevoTexto(''); });
+$('#txtTpl').onchange = e => { const v = e.target.value; e.target.value = ''; if (v) nuevoTexto(v); };
 function fxSync() {
   const e = P.escenas[selScene]; if (!e) return; const fx = e.fx || {};
   $('#fxTit').textContent = `Efectos de la escena ${selScene + 1}`;
@@ -2723,6 +2777,8 @@ let revBusy = false;
 const estDur = e => P.ajustes.voz === 'escenas' && e.voz ? null : Math.max(3, words(e.texto).length / 2.6 + 1);
 async function reviewScenes(useAI, onp) {
   const out = P.escenas.map(() => []);
+  const porId = {}; P.escenas.forEach((e, i) => { if (e.bancoId && e.visual.tipo !== 'tarjeta') (porId[e.bancoId] = porId[e.bancoId] || []).push(i); });
+  for (const id in porId) { const g = porId[id]; if (g.length > 1) g.forEach(i => out[i].push('El mismo clip se usa en la escena ' + g.filter(j => j !== i).map(j => j + 1).join(', ') + '. Cambia alguna con «Otra opción».')); }
   for (const [i, e] of P.escenas.entries()) {
     const v = e.visual;
     if (v.tipo === 'tarjeta') out[i].push('No tiene imagen: saldrá una tarjeta de color.');
@@ -2751,8 +2807,11 @@ async function runReview(useAI) {
   try {
     const res = await reviewScenes(useAI, (f, t) => $('#revInfo').textContent = t);
     const bad = res.map((r, i) => ({ i, r })).filter(x => x.r.length);
+    const tx = (P.textos || []).slice().sort((a, b) => a.t0 - b.t0); let solapa = false;
+    for (let i = 1; i < tx.length; i++) if (tx[i].t0 < tx[i - 1].t0 + tx[i - 1].d - 0.1 && (tx[i].pos || 'centro') === (tx[i - 1].pos || 'centro')) solapa = true;
     P.revision = { fecha: Date.now(), n: bad.length }; save();
     $('#revInfo').textContent = bad.length ? (bad.length === 1 ? `Solo la escena ${bad[0].i + 1} necesita revisión. Las otras ${P.escenas.length - 1} están bien, por eso no salen aquí.` : `${bad.length} de ${P.escenas.length} escenas necesitan revisión (${bad.map(x => x.i + 1).join(', ')}). El resto está bien, por eso no salen aquí.`) + `${useAI && !(sample && imagesOK) ? ' (En esta vista la IA no puede mirar las imágenes: solo se han hecho las comprobaciones automáticas.)' : ''}` : `Las ${P.escenas.length} escenas están bien.`;
+    if (solapa) $('#revInfo').textContent += ' Además, hay textos que se pisan en pantalla (misma posición y a la vez): sepáralos en la línea de tiempo o cámbiales la posición.';
     $('#revList').innerHTML = bad.map(({ i, r }) => { const e = P.escenas[i], q = e.busqueda || autoQ(e); return `<div class="rrow" data-i="${i}"><b>${i + 1}</b><canvas width="320" height="${P.ajustes.formato === 'v' ? 568 : 180}"></canvas><div><p style="margin:0 0 4px;font-size:15px">«${esc(e.texto.slice(0, 140))}${e.texto.length > 140 ? '…' : ''}»</p><ul>${r.map(x => `<li>${esc(x)}</li>`).join('')}</ul><div class="acts"><button class="btn sm" type="button" data-r="ver">Ver en el monitor</button>${sample ? '<button class="btn sm" type="button" data-r="ia">Rehacer dibujo con IA</button>' : ''}<button class="btn sm" type="button" data-r="up">Subir archivo</button><button class="btn sm" type="button" data-r="bank">Buscar en los bancos</button>${bankLinks(q)}</div></div></div>`; }).join('');
     for (const row of $$('#revList .rrow')) { const i = +row.dataset.i, e = P.escenas[i], cv = row.querySelector('canvas'); await prepVisual(e); const [W, H] = dims(); const x = cv.getContext('2d'); x.save(); x.scale(cv.width / W, cv.height / H); drawScene(x, W, H, { e, i, dur: 1, speech: 1 }, 0.5); x.restore(); }
     return bad.length;
@@ -2925,6 +2984,15 @@ document.addEventListener('keydown', ev => {
   if (ev.target.closest('input,textarea,select,button,a,[contenteditable]')) return;
   ev.preventDefault(); if (play) togglePause(); else if (!$('#bPlay').disabled) $('#bPlay').click();
 });
+$('#bUndo').onclick = () => undo();
+$('#bRedo').onclick = () => redo();
+document.addEventListener('keydown', ev => {
+  if (!P || !(ev.metaKey || ev.ctrlKey)) return;
+  const tg = ev.target; if (tg && tg.closest && tg.closest('input,textarea,[contenteditable]')) return; /* deja el deshacer del navegador al escribir */
+  const k = ev.key.toLowerCase();
+  if (k === 'z' && !ev.shiftKey) { ev.preventDefault(); undo(); }
+  else if ((k === 'z' && ev.shiftKey) || k === 'y') { ev.preventDefault(); redo(); }
+});
 $('#bPlay').onclick = async () => {
   if (play) { if (play.paused) togglePause(); return; }
   if (!P.escenas.length) return;
@@ -2956,12 +3024,48 @@ $('#bPlay').onclick = async () => {
 };
 
 /* ---------- audio final ---------- */
+/* sube el audio a un volumen parejo (pico cerca de -0,5 dBFS) sin saturar */
+function nivelaAudio(ch) {
+  let pico = 0; for (let k = 0; k < ch.length; k++) { const v = Math.abs(ch[k]); if (v > pico) pico = v; }
+  if (pico < 1e-4) return; const g = Math.min(8, 0.94 / pico); if (g <= 1.02) return;
+  for (let k = 0; k < ch.length; k++) { const x = ch[k] * g; ch[k] = x > 0.985 ? 0.985 : x < -0.985 ? -0.985 : x; }
+}
+/* efectos de sonido sintetizados: «whoosh» en las transiciones y «pop» al entrar un texto */
+function whoosh(oac, t0) {
+  const d = 0.34, sr = oac.sampleRate, n = Math.floor(d * sr), buf = oac.createBuffer(1, n, sr), da = buf.getChannelData(0);
+  for (let k = 0; k < n; k++) da[k] = (Math.random() * 2 - 1);
+  const src = oac.createBufferSource(); src.buffer = buf;
+  const bp = oac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.8;
+  bp.frequency.setValueAtTime(380, t0); bp.frequency.exponentialRampToValueAtTime(2600, t0 + d * 0.7);
+  const g = oac.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.14, t0 + 0.09); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+  src.connect(bp); bp.connect(g); g.connect(oac.destination); src.start(t0); src.stop(t0 + d);
+}
+function pop(oac, t0) {
+  const o = oac.createOscillator(), g = oac.createGain(); o.type = 'sine';
+  o.frequency.setValueAtTime(520, t0); o.frequency.exponentialRampToValueAtTime(880, t0 + 0.05);
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.1, t0 + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12);
+  o.connect(g); g.connect(oac.destination); o.start(t0); o.stop(t0 + 0.14);
+}
+function addSfx(oac, tl) {
+  let any = false;
+  tl.items.forEach((it, i) => { if (i === 0) return; const tr = it.e.trans || P.ajustes.trans || 'fundido'; if (tr === 'corte') return; if (it.start < 0.05 || it.start > tl.total - 0.05) return; whoosh(oac, it.start); any = true; });
+  (P.textos || []).forEach(x => { if (!x.texto || x.t0 < 0.05 || x.t0 > tl.total - 0.05) return; pop(oac, x.t0); any = true; });
+  return any;
+}
 async function mixAudio(tl, rate) {
   const a = P.ajustes, music = (a.musica || 'no') !== 'no' && !(a.musica === 'propia' && !P.musica);
   if ((a.voz === 'ninguna' && !music) || !tl.items.length) return null;
   const len = Math.ceil(tl.total * rate) + rate;
   const oac = new OfflineAudioContext(1, len, rate);
-  const vg = oac.createGain(); vg.gain.value = a.vozMute ? 0 : (a.vozVol == null ? 1 : a.vozVol); vg.connect(oac.destination);
+  const vg = oac.createGain(); vg.gain.value = a.vozMute ? 0 : (a.vozVol == null ? 1 : a.vozVol);
+  /* voz más clara: corta el retumbe grave, realza la presencia y empareja el volumen */
+  if (a.vozClara !== false && !a.vozMute) {
+    const hp = oac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 85;
+    const pres = oac.createBiquadFilter(); pres.type = 'peaking'; pres.frequency.value = 3200; pres.Q.value = 0.8; pres.gain.value = 3.5;
+    const comp = oac.createDynamicsCompressor(); comp.threshold.value = -22; comp.knee.value = 26; comp.ratio.value = 3.2; comp.attack.value = 0.004; comp.release.value = 0.2;
+    const mk = oac.createGain(); mk.gain.value = 1.5; /* recupera el volumen que baja el compresor */
+    vg.connect(hp); hp.connect(pres); pres.connect(comp); comp.connect(mk); mk.connect(oac.destination);
+  } else vg.connect(oac.destination);
   let any = false;
   if (a.voz === 'tv' || a.voz === 'escenas') {
     any = true; /* como en el original: siempre hay pista de audio, aunque sea en silencio */
@@ -2970,8 +3074,11 @@ async function mixAudio(tl, rate) {
     const buf = await decodeOwn(); if (buf) { any = true; const s = oac.createBufferSource(); s.buffer = buf; s.connect(vg); s.start(0); }
   }
   if (music) { try { any = (await addMusic(oac, tl, tl.total)) || any; } catch (e) { toast('No se pudo leer la música: el vídeo irá sin ella.'); } }
+  if (a.sfx) { any = addSfx(oac, tl) || any; }
   if (!any) return null;
-  const out = await oac.startRendering(); return out.getChannelData(0);
+  const out = await oac.startRendering(); const ch = out.getChannelData(0);
+  if (a.nivelar !== false) nivelaAudio(ch);
+  return ch;
 }
 
 /* ---------- paso 4: exportar ---------- */
@@ -3232,7 +3339,7 @@ async function openProject(p) {
   $('#durTotal').value = P.ajustes.durTotal ? fmtTime(P.ajustes.durTotal) : ''; $('#segEsc').value = String(P.ajustes.segEscena || 5); desgInfo();
   $('#biblia').value = P.biblia || ''; P.refs = P.refs || []; renderRefs(); renderPj(); autoInit(); $('#auProg').hidden = true; $('#auMsg').textContent = sample ? '' : $('#auMsg').textContent;
   try { localStorage.setItem('tv-last', P.id); } catch (e) { }
-  show('guion'); $('#saved').textContent = '';
+  show('guion'); $('#saved').textContent = ''; histReset();
 }
 async function listProjects() {
   const all = (await DB.all()).sort((a, b) => b.actualizado - a.actualizado);
